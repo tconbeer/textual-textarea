@@ -1,13 +1,13 @@
 from math import ceil, floor
-from typing import List, Tuple, Union, NamedTuple
+from typing import List, NamedTuple, Tuple, Union
 
 from rich.console import RenderableType
-from rich.syntax import Syntax, PygmentsSyntaxTheme
 from rich.style import Style
+from rich.syntax import PygmentsSyntaxTheme, Syntax
 from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.color import Color
+from textual.color import BLACK, WHITE, Color
 from textual.containers import Container, ScrollableContainer
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -48,7 +48,7 @@ class WidgetColors(NamedTuple):
                 selection_bgcolor = t_color.lighten(0.10)
             return WidgetColors(contrast_text_color, bgcolor, selection_bgcolor)
         else:
-            return WidgetColors(Color.BLACK, Color.WHITE, Color.parse("#aaaaaa"))
+            return WidgetColors(BLACK, WHITE, Color.parse("#aaaaaa"))
 
 
 class TextInput(Static, can_focus=True):
@@ -561,7 +561,7 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
     def action_load(self) -> None:
         self._mount_footer_input("open")
 
-    def _mount_footer_input(self, name:str) -> None:
+    def _mount_footer_input(self, name: str) -> None:
         footer = self.query_one(FooterContainer)
         input = CancellableInput(
             id=f"textarea__{name}_input",
