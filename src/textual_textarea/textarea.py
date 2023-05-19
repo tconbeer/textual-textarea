@@ -1,11 +1,13 @@
 from math import ceil, floor
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, NamedTuple
 
 from rich.console import RenderableType
-from rich.syntax import Syntax
+from rich.syntax import Syntax, PygmentsSyntaxTheme
+from rich.style import Style
 from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.color import Color
 from textual.containers import Container, ScrollableContainer
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -25,6 +27,30 @@ CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 TAB_SIZE = 4
 
 
+class WidgetColors(NamedTuple):
+    contrast_text_color: Color
+    bgcolor: Color
+    selection_bgcolor: Color
+
+    @classmethod
+    def from_theme(cls, theme: str) -> "WidgetColors":
+        theme_background_style = PygmentsSyntaxTheme(theme).get_background_style()
+        if (
+            theme_background_style is not None
+            and theme_background_style.bgcolor is not None
+        ):
+            t_color = Color.from_rich_color(theme_background_style.bgcolor)
+            bgcolor = t_color
+            contrast_text_color = t_color.get_contrast_text()
+            if t_color.brightness >= 0.5:
+                selection_bgcolor = t_color.darken(0.10)
+            else:
+                selection_bgcolor = t_color.lighten(0.10)
+            return WidgetColors(contrast_text_color, bgcolor, selection_bgcolor)
+        else:
+            return WidgetColors(Color.BLACK, Color.WHITE, Color.parse("#aaaaaa"))
+
+
 class TextInput(Static, can_focus=True):
     DEFAULT_CSS = """
         TextInput {
@@ -42,10 +68,12 @@ class TextInput(Static, can_focus=True):
 
     def __init__(
         self,
+        theme_colors: WidgetColors,
         language: Union[str, None] = None,
         theme: str = "monokai",
     ) -> None:
         super().__init__()
+        self.theme_colors = theme_colors
         self.language = language
         self.theme = theme
 
@@ -293,8 +321,11 @@ class TextInput(Static, can_focus=True):
         if self.selection_anchor is not None:
             first = min(self.selection_anchor, self.cursor)
             second = max(self.selection_anchor, self.cursor)
+            selection_style = Style(
+                bgcolor=self.theme_colors.selection_bgcolor.rich_color
+            )
             syntax.stylize_range(
-                "on #444444",
+                selection_style,
                 # rows are 1-indexed
                 (first.lno + 1, first.pos),
                 (second.lno + 1, second.pos),
@@ -475,14 +506,22 @@ class FooterContainer(
         }
     """
 
+    def __init__(
+        self,
+        theme_colors: WidgetColors,
+        *children: Widget,
+        name: Union[str, None] = None,
+        id: Union[str, None] = None,
+        classes: Union[str, None] = None,
+        disabled: bool = False,
+    ) -> None:
+        super().__init__(
+            *children, name=name, id=id, classes=classes, disabled=disabled
+        )
+        self.theme_colors = theme_colors
+
 
 class TextArea(Widget, can_focus=False, can_focus_children=True):
-    DEFAULT_CSS = """
-    TextArea {
-        background: $boost;
-    }
-    """
-
     BINDINGS = [
         Binding("ctrl+s", "save", "Save Query"),
         Binding("ctrl+o", "load", "Open Query"),
@@ -497,34 +536,40 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         classes: Union[str, None] = None,
         disabled: bool = False,
         language: Union[str, None] = None,
-        theme: str = "github-dark",
+        theme: str = "monokai",
     ) -> None:
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
         self.language = language
         self.theme = theme
+        self.theme_colors = WidgetColors.from_theme(self.theme)
 
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput(language=self.language)
-        yield FooterContainer()
+            yield TextInput(
+                language=self.language, theme=self.theme, theme_colors=self.theme_colors
+            )
+        yield FooterContainer(theme_colors=self.theme_colors)
+
+    def on_mount(self) -> None:
+        self.styles.background = self.theme_colors.bgcolor
 
     def action_save(self) -> None:
-        footer = self.query_one(FooterContainer)
-        input = CancellableInput(
-            id="textarea__save_input",
-            placeholder="Save: Enter file path; press ESC to cancel",
-        )
-        footer.mount(input)
-        input.focus()
+        self._mount_footer_input("save")
 
     def action_load(self) -> None:
+        self._mount_footer_input("open")
+
+    def _mount_footer_input(self, name:str) -> None:
         footer = self.query_one(FooterContainer)
         input = CancellableInput(
-            id="textarea__open_input",
-            placeholder="Open: Enter file path; press ESC to cancel",
+            id=f"textarea__{name}_input",
+            placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
         )
+        input.styles.background = self.theme_colors.bgcolor
+        input.styles.border = "round", self.theme_colors.contrast_text_color
+        input.styles.color = self.theme_colors.contrast_text_color
         footer.mount(input)
         input.focus()
 
@@ -580,14 +625,14 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         if message.input.id == "textarea__save_input":
             try:
                 with open(message.input.value, "w") as f:
-                    query = "\n".join([line.rstrip() for line in editor.lines])
-                    f.write(query)
+                    contents = "\n".join([line.rstrip() for line in editor.lines])
+                    f.write(contents)
             except OSError as e:
                 self.app.push_screen(
                     ErrorModal(
                         title="Save File Error",
                         header=(
-                            "There was an error when " "attempting to save your file:"
+                            "There was an error when attempting to save your file:"
                         ),
                         error=e,
                     )
@@ -595,20 +640,23 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         elif message.input.id == "textarea__open_input":
             try:
                 with open(message.input.value, "r") as f:
-                    query = f.read()
+                    contents = f.read()
             except OSError as e:
                 self.app.push_screen(
                     ErrorModal(
                         title="Open File Error",
                         header=(
-                            "There was an error when " "attempting to open your file:"
+                            "There was an error when attempting to open your file:"
                         ),
                         error=e,
                     )
                 )
             else:
                 editor.move_cursor(0, 0)
-                editor.lines = [f"{line} " for line in query.splitlines()]
+                if contents:
+                    editor.lines = [f"{line} " for line in contents.splitlines()]
+                else:
+                    editor.lines = [" "]
         message.input.remove()
 
 
@@ -617,7 +665,7 @@ if __name__ == "__main__":
 
     class TextApp(App, inherit_bindings=False):
         def compose(self) -> ComposeResult:
-            yield TextArea(language="python")
+            yield TextArea(language="python", theme="solarized-dark")
 
         def on_mount(self) -> None:
             ta = self.query_one(TextArea)
