@@ -40,6 +40,15 @@ class TextInput(Static, can_focus=True):
     clipboard: List[str] = list()
     cursor_visible: reactive[bool] = reactive(True)
 
+    def __init__(
+        self,
+        language: Union[str, None] = None,
+        theme: str = "monokai",
+    ) -> None:
+        super().__init__()
+        self.language = language
+        self.theme = theme
+
     def on_mount(self) -> None:
         self.blink_timer = self.set_interval(
             0.5,
@@ -269,7 +278,11 @@ class TextInput(Static, can_focus=True):
 
     @property
     def _content(self) -> RenderableType:
-        syntax = Syntax("\n".join(self.lines), "sql")
+        syntax = Syntax(
+            "\n".join(self.lines),
+            lexer=self.language,
+            theme=self.theme,
+        )
         if self.cursor_visible:
             syntax.stylize_range(
                 "reverse",
@@ -476,9 +489,25 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
+    def __init__(
+        self,
+        *children: Widget,
+        name: Union[str, None] = None,
+        id: Union[str, None] = None,
+        classes: Union[str, None] = None,
+        disabled: bool = False,
+        language: Union[str, None] = None,
+        theme: str = "github-dark",
+    ) -> None:
+        super().__init__(
+            *children, name=name, id=id, classes=classes, disabled=disabled
+        )
+        self.language = language
+        self.theme = theme
+
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput()
+            yield TextInput(language=self.language)
         yield FooterContainer()
 
     def action_save(self) -> None:
@@ -588,7 +617,7 @@ if __name__ == "__main__":
 
     class TextApp(App, inherit_bindings=False):
         def compose(self) -> ComposeResult:
-            yield TextArea()
+            yield TextArea(language="python")
 
         def on_mount(self) -> None:
             ta = self.query_one(TextArea)
