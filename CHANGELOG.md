@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.0] - 2023-06-01
 
+-   Initial release: TextArea is a feature-rich text area (multiline) input, with
+    support for syntax highlighting, themes, keyboard navigation, copy-paste, file
+    opening and saving, and more!
+
 [Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.1.0...HEAD
 
 [0.1.0]: https://github.com/tconbeer/textual-textarea/compare/9832e9bbe1cd7a2ce9a4f09746eb1c2ddc8df842...0.1.0
