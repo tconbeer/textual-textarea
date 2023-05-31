@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Makes top-level TextArea widget focusable
+-   Loosens textual dependency to >=0.21.0
+-   Adds py.typed file
+
 ## [0.1.1] - 2023-06-01
 
 -   Exports TextArea class under the main textual_textarea module.
