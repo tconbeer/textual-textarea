@@ -14,7 +14,6 @@ class TextContainer(
 ):
     DEFAULT_CSS = """
         TextContainer {
-            dock: top;
             height: 1fr;
             width: 100%
         }
