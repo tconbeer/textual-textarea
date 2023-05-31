@@ -1,19 +1,19 @@
 from math import ceil, floor
-from typing import List, NamedTuple, Tuple, Union
+from typing import List, Tuple, Union
 
 from rich.console import RenderableType
 from rich.style import Style
-from rich.syntax import PygmentsSyntaxTheme, Syntax
+from rich.syntax import Syntax
 from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.color import BLACK, WHITE, Color
-from textual.containers import Container, ScrollableContainer
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Input, Static
 
 from textual_textarea.cancellable_input import CancellableInput
+from textual_textarea.colors import WidgetColors
+from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor, handle_arrow
 from textual_textarea.messages import TextAreaCursorMoved, TextAreaScrollOne
@@ -25,30 +25,6 @@ BRACKETS = {
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 TAB_SIZE = 4
-
-
-class WidgetColors(NamedTuple):
-    contrast_text_color: Color
-    bgcolor: Color
-    selection_bgcolor: Color
-
-    @classmethod
-    def from_theme(cls, theme: str) -> "WidgetColors":
-        theme_background_style = PygmentsSyntaxTheme(theme).get_background_style()
-        if (
-            theme_background_style is not None
-            and theme_background_style.bgcolor is not None
-        ):
-            t_color = Color.from_rich_color(theme_background_style.bgcolor)
-            bgcolor = t_color
-            contrast_text_color = t_color.get_contrast_text()
-            if t_color.brightness >= 0.5:
-                selection_bgcolor = t_color.darken(0.10)
-            else:
-                selection_bgcolor = t_color.lighten(0.10)
-            return WidgetColors(contrast_text_color, bgcolor, selection_bgcolor)
-        else:
-            return WidgetColors(BLACK, WHITE, Color.parse("#aaaaaa"))
 
 
 class TextInput(Static, can_focus=True):
@@ -477,51 +453,19 @@ class TextInput(Static, can_focus=True):
         self.update(self._content)
 
 
-class TextContainer(
-    ScrollableContainer,
-    inherit_bindings=False,
-    can_focus=False,
-    can_focus_children=True,
-):
-    DEFAULT_CSS = """
-        TextContainer {
-            dock: top;
-            height: 1fr;
-            width: 100%
-        }
-    """
-
-
-class FooterContainer(
-    Container,
-    inherit_bindings=False,
-    can_focus=False,
-    can_focus_children=True,
-):
-    DEFAULT_CSS = """
-        FooterContainer {
-            dock: bottom;
-            height: auto;
-            width: 100%
-        }
-    """
-
-    def __init__(
-        self,
-        theme_colors: WidgetColors,
-        *children: Widget,
-        name: Union[str, None] = None,
-        id: Union[str, None] = None,
-        classes: Union[str, None] = None,
-        disabled: bool = False,
-    ) -> None:
-        super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
-        )
-        self.theme_colors = theme_colors
-
-
 class TextArea(Widget, can_focus=False, can_focus_children=True):
+    """
+    A Widget that presents a feature-rich, multiline text editor interface.
+
+    Attributes:
+        text (str): The contents of the TextArea
+        language (str): Must be the short name of a Pygments lexer
+            (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
+        theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
+            e.g., "bw", "github-dark", "solarized-light".
+        theme_colors (WidgetColors): The colors extracted from the theme.
+    """
+
     BINDINGS = [
         Binding("ctrl+s", "save", "Save Query"),
         Binding("ctrl+o", "load", "Open Query"),
@@ -538,12 +482,45 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         language: Union[str, None] = None,
         theme: str = "monokai",
     ) -> None:
+        """
+        Initializes an instance of a TextArea.
+
+        Args:
+            (see also textual.widget.Widget)
+            language (str): Must be the short name of a Pygments lexer
+                (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
+            theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
+                e.g., "bw", "github-dark", "solarized-light".
+        """
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
         self.language = language
         self.theme = theme
         self.theme_colors = WidgetColors.from_theme(self.theme)
+
+    @property
+    def text(self) -> str:
+        """
+        Returns:
+            (str) The contents of the TextArea.
+        """
+        editor = self.query_one(TextInput)
+        return "\n".join([line.rstrip() for line in editor.lines])
+
+    @text.setter
+    def text(self, contents: str) -> None:
+        """
+        Args:
+            contents (str): A string (optionally containing newlines) to
+                set the contents of the TextArea equal to.
+        """
+        editor = self.query_one(TextInput)
+        editor.move_cursor(0, 0)
+        if contents:
+            editor.lines = [f"{line} " for line in contents.splitlines()]
+        else:
+            editor.lines = [" "]
 
     def compose(self) -> ComposeResult:
         with TextContainer():
@@ -621,12 +598,13 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
         )
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
-        editor = self.query_one(TextInput)
+        """
+        Handle the submit event for the Save and Open modals.
+        """
         if message.input.id == "textarea__save_input":
             try:
                 with open(message.input.value, "w") as f:
-                    contents = "\n".join([line.rstrip() for line in editor.lines])
-                    f.write(contents)
+                    f.write(self.text)
             except OSError as e:
                 self.app.push_screen(
                     ErrorModal(
@@ -652,11 +630,7 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
                     )
                 )
             else:
-                editor.move_cursor(0, 0)
-                if contents:
-                    editor.lines = [f"{line} " for line in contents.splitlines()]
-                else:
-                    editor.lines = [" "]
+                self.text = contents
         message.input.remove()
 
 
@@ -665,7 +639,7 @@ if __name__ == "__main__":
 
     class TextApp(App, inherit_bindings=False):
         def compose(self) -> ComposeResult:
-            yield TextArea(language="python", theme="solarized-dark")
+            yield TextArea(language="python", theme="github-dark")
 
         def on_mount(self) -> None:
             ta = self.query_one(TextArea)
