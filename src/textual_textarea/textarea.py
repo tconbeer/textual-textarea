@@ -453,7 +453,7 @@ class TextInput(Static, can_focus=True):
         self.update(self._content)
 
 
-class TextArea(Widget, can_focus=False, can_focus_children=True):
+class TextArea(Widget, can_focus=True, can_focus_children=False):
     """
     A Widget that presents a feature-rich, multiline text editor interface.
 
@@ -531,6 +531,10 @@ class TextArea(Widget, can_focus=False, can_focus_children=True):
 
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
+
+    def on_focus(self) -> None:
+        input = self.query_one(TextInput)
+        input.focus()
 
     def action_save(self) -> None:
         self._mount_footer_input("save")
@@ -640,9 +644,10 @@ if __name__ == "__main__":
     class TextApp(App, inherit_bindings=False):
         def compose(self) -> ComposeResult:
             yield TextArea(language="python", theme="github-dark")
+            yield TextArea(language="sql", theme="monokai")
 
         def on_mount(self) -> None:
-            ta = self.query_one(TextArea)
+            ta = self.query(TextArea)[0]
             ta.focus()
 
     app = TextApp()

@@ -15,11 +15,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-textual = "^0.27.0"
+textual = ">=0.21.0, <1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = {version="*", extras=["dev"]}
+textual = {version="0.21.0", extras=["dev"]}
 
 [tool.poetry.group.static.dependencies]
 black = "^23.3.0"
