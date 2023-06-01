@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-
+-   Exports TextArea class under the main textual_textarea module.
 ## [0.1.0] - 2023-06-01
 
 -   Initial release: TextArea is a feature-rich text area (multiline) input, with
