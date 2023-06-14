@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
--   Uses the system clipboard for copy and paste operations, unless initialized
+-   Uses the system clipboard (if it exists) for copy and paste operations, unless initialized
     with `use_system_clipboard=False`.
 -   Adds a sample app that can be run with `python -m textual_textarea`.
 

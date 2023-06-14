@@ -196,7 +196,11 @@ class TextInput(Static, can_focus=True):
             lines[0] = lines[0][first.pos :]
             self.clipboard = lines.copy()
             if self.use_system_clipboard:
-                pyperclip.copy(serialize_lines(self.clipboard))
+                try:
+                    pyperclip.copy(serialize_lines(self.clipboard))
+                except pyperclip.PyperclipException:
+                    # no system clipboard; common in CI runners
+                    pass
             self.log(f"copied to clipboard: {self.clipboard}")
             if event.key == "ctrl+x":
                 self._delete_selection(first, last)
@@ -428,7 +432,13 @@ class TextInput(Static, can_focus=True):
         self, anchor: Union[Cursor, None], cursor: Cursor
     ) -> None:
         if self.use_system_clipboard:
-            self.clipboard = deserialize_lines(pyperclip.paste(), trim=True)
+            try:
+                sys_clipboard = pyperclip.paste()
+            except pyperclip.PyperclipException:
+                # no system clipboard; common in CI runners
+                pass
+            else:
+                self.clipboard = deserialize_lines(sys_clipboard, trim=True)
         if anchor:
             self._delete_selection(anchor, cursor)
             cursor = self.cursor
