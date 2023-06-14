@@ -1,14 +1,27 @@
 # Textual Textarea
+![Textual Textarea Screenshot](textarea.png)
 
-# Installation
+## Installation
 
 ```
 pip install textual-textarea
 ```
 
-# Usage
+## Features
+Full-featured text editor experience with VS-Code-like bindings, in your Textual App:
+- Syntax highlighting and support for themes.
+- Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>Home/End</kbd>).
+- Select text using <kbd>shift</kbd>.
+- Open (<kbd>ctrl+o</kbd>) and save (<kbd>ctrl+s</kbd>) files.
+- Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard.
+- Comment selections with <kbd>ctrl+/</kbd>.
+- Indent and dedent (optionally for a multiline selection) to tab stops with <kbd>Tab</kbd> and <kbd>shift+Tab</kbd>.
+- Automatic completions of quotes and brackets.
+- Quit with <kbd>ctrl+q</kbd>.
 
-## Initializing the Widget
+## Usage
+
+### Initializing the Widget
 
 The TextArea is a Textual Widget. You can add it to a Textual
 app using `compose` or `mount`:
@@ -29,17 +42,18 @@ app = TextApp()
 app.run()
 ```
 
-In addition to the standard Widget arguments, TextArea accepts two additional, optional arguments when initializing the widget:
+In addition to the standard Widget arguments, TextArea accepts three additional, optional arguments when initializing the widget:
 
-- language: Must be `None` or the short name of a [Pygments lexer](https://pygments.org/docs/lexers/), e.g., `python`, `sql`, `as3`. Defaults to None.
-- theme: Must be name of a [Pygments style](https://pygments.org/styles/), e.g., `bw`, `github-dark`, `solarized-light`. Defaults to `monokai`.
+- language (str): Must be `None` or the short name of a [Pygments lexer](https://pygments.org/docs/lexers/), e.g., `python`, `sql`, `as3`. Defaults to `None`.
+- theme (str): Must be name of a [Pygments style](https://pygments.org/styles/), e.g., `bw`, `github-dark`, `solarized-light`. Defaults to `monokai`.
+- use_system_clipboard (bool): Set to `False` to make the TextArea's copy and paste operations ignore the system clipboard. Defaults to `True`.
 
 The TextArea supports many actions and key bindings. **For proper binding of `ctrl+c` to the COPY action,
 you must initialize your App with `inherit_bindings=False`** (as shown above), so that `ctrl+c` does not quit the app. The TextArea implements `ctrl+q` as quit; you way wish to mimic that in your app so that other in-focus widgets use the same behavior.
 
-## Interacting with the Widget
+### Interacting with the Widget
 
-### Getting and Setting Text
+#### Getting and Setting Text
 
 The TextArea exposes a `text` property that contains the full text contained in the widget. You can retrieve or set the text by interacting with this property:
 
@@ -49,7 +63,7 @@ old_text = ta.text
 ta.text = "New Text!\n\nMany Lines!"
 ```
 
-### Getting Theme Colors
+#### Getting Theme Colors
 
 If you would like the rest of your app to match the colors from the TextArea's theme, they are exposed via the `theme_colors` property.
 
@@ -60,4 +74,26 @@ bgcolor = ta.theme_colors.bgcolor
 highlight = ta.theme_colors.selection_bgcolor
 ```
 
-You cannot set these colors this way, however.
+
+#### Adding Bindings and other Behavior
+
+You can subclass TextArea to add your own behavior. This snippet adds an action that posts a Submitted message containing the text of the TextArea when the user presses <kbd>ctrl+j</kbd>:
+
+```python
+from textual.message import Message
+from textual_textarea import TextArea
+
+
+class CodeEditor(TextArea):
+    BINDINGS = [
+        ("ctrl+j", "submit", "Run Query"),
+    ]
+
+    class Submitted(Message, bubble=True):
+        def __init__(self, text: str) -> None:
+            super().__init__()
+            self.text = text
+
+    async def action_submit(self) -> None:
+        self.post_message(self.Submitted(self.text))
+```

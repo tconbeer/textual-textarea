@@ -1,18 +1,34 @@
-from typing import List, Union
+from typing import List, Type, Union
 
 import pytest
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, CSSPathType
+from textual.driver import Driver
 from textual_textarea.key_handlers import Cursor
 from textual_textarea.textarea import TextArea, TextInput
 
 
-@pytest.fixture
-def app() -> App:
-    class TestApp(App, inherit_bindings=False):
-        def compose(self) -> ComposeResult:
-            yield TextArea()
+class TextAreaApp(App, inherit_bindings=False):
+    def __init__(
+        self,
+        driver_class: Union[Type[Driver], None] = None,
+        css_path: Union[CSSPathType, None] = None,
+        watch_css: bool = False,
+        use_system_clipboard: bool = True,
+    ):
+        self.use_system_clipboard = use_system_clipboard
+        super().__init__(driver_class, css_path, watch_css)
 
-    app: App = TestApp()
+    def compose(self) -> ComposeResult:
+        yield TextArea(use_system_clipboard=self.use_system_clipboard)
+
+    def on_mount(self) -> None:
+        ta = self.query_one(TextArea)
+        ta.focus()
+
+
+@pytest.fixture(params=[False, True], ids=["no_sys_clipboard", "default"])
+def app(request: pytest.FixtureRequest) -> App:
+    app = TextAreaApp(use_system_clipboard=request.param)
     return app
 
 
@@ -118,8 +134,7 @@ async def test_keys(
 
     async with app.run_test() as pilot:
         widget = app.query_one(TextInput)
-        widget.focus()
-        widget.lines = lines
+        widget.lines = lines.copy()
         widget.selection_anchor = anchor
         widget.cursor = cursor
 
@@ -129,3 +144,70 @@ async def test_keys(
         assert widget.lines == expected_lines
         assert widget.selection_anchor == expected_anchor
         assert widget.cursor == expected_cursor
+
+
+@pytest.mark.parametrize(
+    "starting_anchor,starting_cursor,expected_clipboard",
+    [
+        (Cursor(0, 5), Cursor(1, 5), ["56789 ", "01234"]),
+        (Cursor(0, 0), Cursor(1, 0), ["0123456789 ", ""]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_copy_paste(
+    app: App,
+    starting_anchor: Cursor,
+    starting_cursor: Cursor,
+    expected_clipboard: List[str],
+) -> None:
+    original_text = "0123456789\n0123456789\n0123456789"
+
+    async with app.run_test() as pilot:
+        ta = app.query_one(TextArea)
+        ti = app.query_one(TextInput)
+        ta.text = original_text
+        ti.selection_anchor = starting_anchor
+        ti.cursor = starting_cursor
+
+        await pilot.press("ctrl+c")
+        assert ti.clipboard == expected_clipboard
+        assert ti.selection_anchor == starting_anchor
+        assert ti.cursor == starting_cursor
+        assert ta.text == original_text
+
+        await pilot.press("ctrl+u")
+        assert ti.clipboard == expected_clipboard
+        assert ti.selection_anchor is None
+        assert ti.cursor == starting_cursor
+        assert ta.text == original_text
+
+        await pilot.press("ctrl+a")
+        assert ti.selection_anchor == Cursor(0, 0)
+        assert ti.cursor == Cursor(
+            len(original_text.splitlines()) - 1, len(original_text.splitlines()[-1])
+        )
+        assert ti.clipboard == expected_clipboard
+        assert ta.text == original_text
+
+        await pilot.press("ctrl+u")
+        assert ti.selection_anchor is None
+        assert ti.cursor == Cursor(
+            len(expected_clipboard) - 1, len(expected_clipboard[-1])
+        )
+        assert ti.clipboard == expected_clipboard
+        assert ta.text == "\n".join([line.strip() for line in expected_clipboard])
+
+        await pilot.press("ctrl+a")
+        await pilot.press("ctrl+x")
+        assert ti.selection_anchor is None
+        assert ti.cursor == Cursor(0, 0)
+        assert ti.clipboard == expected_clipboard
+        assert ta.text == ""
+
+        await pilot.press("ctrl+u")
+        assert ti.selection_anchor is None
+        assert ti.cursor == Cursor(
+            len(expected_clipboard) - 1, len(expected_clipboard[-1])
+        )
+        assert ti.clipboard == expected_clipboard
+        assert ta.text == "\n".join([line.rstrip() for line in expected_clipboard])

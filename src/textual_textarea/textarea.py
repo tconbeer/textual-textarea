@@ -1,6 +1,7 @@
 from math import ceil, floor
 from typing import List, Tuple, Union
 
+import pyperclip
 from rich.console import RenderableType
 from rich.style import Style
 from rich.syntax import Syntax
@@ -17,6 +18,7 @@ from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor, handle_arrow
 from textual_textarea.messages import TextAreaCursorMoved, TextAreaScrollOne
+from textual_textarea.serde import deserialize_lines, serialize_lines
 
 BRACKETS = {
     "(": ")",
@@ -41,17 +43,20 @@ class TextInput(Static, can_focus=True):
     selection_anchor: reactive[Union[Cursor, None]] = reactive(None)
     clipboard: List[str] = list()
     cursor_visible: reactive[bool] = reactive(True)
+    use_system_clipboard: bool = True
 
     def __init__(
         self,
         theme_colors: WidgetColors,
         language: Union[str, None] = None,
         theme: str = "monokai",
+        use_system_clipboard: bool = True,
     ) -> None:
         super().__init__()
         self.theme_colors = theme_colors
         self.language = language
         self.theme = theme
+        self.use_system_clipboard = use_system_clipboard
 
     def on_mount(self) -> None:
         self.blink_timer = self.set_interval(
@@ -76,8 +81,8 @@ class TextInput(Static, can_focus=True):
         If the user hits ctrl+v, we don't get that keypress;
         we get a Paste event instead.
 
-        For now, ignore the system clipboard and mimic ctrl+u.
-        Todo: Use the system clipboard for copy/paste.
+        This ignores the contents of the Paste message and mimics the behavior of
+        ctrl+u.
         """
         event.stop()
         self.cursor_visible = True
@@ -190,6 +195,12 @@ class TextInput(Static, can_focus=True):
             lines[-1] = lines[-1][: last.pos]
             lines[0] = lines[0][first.pos :]
             self.clipboard = lines.copy()
+            if self.use_system_clipboard:
+                try:
+                    pyperclip.copy(serialize_lines(self.clipboard))
+                except pyperclip.PyperclipException:
+                    # no system clipboard; common in CI runners
+                    pass
             self.log(f"copied to clipboard: {self.clipboard}")
             if event.key == "ctrl+x":
                 self._delete_selection(first, last)
@@ -420,6 +431,14 @@ class TextInput(Static, can_focus=True):
     def _insert_clipboard_at_selection(
         self, anchor: Union[Cursor, None], cursor: Cursor
     ) -> None:
+        if self.use_system_clipboard:
+            try:
+                sys_clipboard = pyperclip.paste()
+            except pyperclip.PyperclipException:
+                # no system clipboard; common in CI runners
+                pass
+            else:
+                self.clipboard = deserialize_lines(sys_clipboard, trim=True)
         if anchor:
             self._delete_selection(anchor, cursor)
             cursor = self.cursor
@@ -481,6 +500,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         disabled: bool = False,
         language: Union[str, None] = None,
         theme: str = "monokai",
+        use_system_clipboard: bool = True,
     ) -> None:
         """
         Initializes an instance of a TextArea.
@@ -498,6 +518,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.language = language
         self.theme = theme
         self.theme_colors = WidgetColors.from_theme(self.theme)
+        self.use_system_clipboard = use_system_clipboard
 
     @property
     def text(self) -> str:
@@ -506,7 +527,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             (str) The contents of the TextArea.
         """
         editor = self.query_one(TextInput)
-        return "\n".join([line.rstrip() for line in editor.lines])
+        return serialize_lines(editor.lines)
 
     @text.setter
     def text(self, contents: str) -> None:
@@ -517,10 +538,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         editor = self.query_one(TextInput)
         editor.move_cursor(0, 0)
-        if contents:
-            editor.lines = [f"{line} " for line in contents.splitlines()]
-        else:
-            editor.lines = [" "]
+        editor.lines = deserialize_lines(contents)
 
     def compose(self) -> ComposeResult:
         with TextContainer():
@@ -636,19 +654,3 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             else:
                 self.text = contents
         message.input.remove()
-
-
-if __name__ == "__main__":
-    from textual.app import App, ComposeResult
-
-    class TextApp(App, inherit_bindings=False):
-        def compose(self) -> ComposeResult:
-            yield TextArea(language="python", theme="github-dark")
-            yield TextArea(language="sql", theme="monokai")
-
-        def on_mount(self) -> None:
-            ta = self.query(TextArea)[0]
-            ta.focus()
-
-    app = TextApp()
-    app.run()
