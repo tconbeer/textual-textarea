@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Features
+
+-   Uses the system clipboard for copy and paste operations, unless initialized
+    with `use_system_clipboard=False`.
+-   Adds a sample app that can be run with `python -m textual_textarea`.
+
 ## [0.1.2] - 2023-06-01
 
 -   Makes top-level TextArea widget focusable
