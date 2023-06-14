@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-06-14
+
 ### Features
 
 -   Uses the system clipboard (if it exists) for copy and paste operations, unless initialized
@@ -26,7 +28,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.1.2...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.2.0...HEAD
+
+[0.2.0]: https://github.com/tconbeer/textual-textarea/compare/0.1.2...0.2.0
 
 [0.1.2]: https://github.com/tconbeer/textual-textarea/compare/0.1.1...0.1.2
 
