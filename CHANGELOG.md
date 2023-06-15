@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.2] - 2023-06-15
 
+### Features
+
+-   Adds a cursor attribute to TextArea to make it easier to get and set the TextInput's cursor position.
+-   Adds 3 attributes to TextArea to make it easier to access the child widgets: `text_input`, `text_container`, and `footer`.
 ### Bug Fixes
 
 -   Fixes a bug that was preventing the cursor from being scrolled into view
