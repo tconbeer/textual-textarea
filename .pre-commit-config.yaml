@@ -15,7 +15,6 @@ repos:
         additional_dependencies:
           - textual
           - pytest
-        exclude: '^.*tests/.*\.py$'
         args:
           - "--disallow-untyped-calls"
           - "--disallow-untyped-defs"

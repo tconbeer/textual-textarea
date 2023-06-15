@@ -654,3 +654,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             else:
                 self.text = contents
         message.input.remove()
+        input = self.query_one(TextInput)
+        input.update(input._content)
+        input.focus()
