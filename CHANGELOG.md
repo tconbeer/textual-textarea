@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2] - 2023-06-15
+
 ### Bug Fixes
 
 -   Fixes a bug that was preventing the cursor from being scrolled into view
@@ -39,7 +41,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.2.1...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.2.2...HEAD
+
+[0.2.2]: https://github.com/tconbeer/textual-textarea/compare/0.2.1...0.2.2
 
 [0.2.1]: https://github.com/tconbeer/textual-textarea/compare/0.2.0...0.2.1
 
