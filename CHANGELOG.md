@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.1] - 2023-06-15
+
+### Bug Fixes
+
+-   Fixes a bug where the TextArea did not update or have focus after opening a file ([#28](https://github.com/tconbeer/textual-textarea/issues/28))
+-   Fixes a bug where a missing space at the end of the buffer after opening a file could cause a crash
+
 ## [0.2.0] - 2023-06-14
 
 ### Features
@@ -28,7 +35,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.2.1...HEAD
+
+[0.2.1]: https://github.com/tconbeer/textual-textarea/compare/0.2.0...0.2.1
 
 [0.2.0]: https://github.com/tconbeer/textual-textarea/compare/0.1.2...0.2.0
 
