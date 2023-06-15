@@ -9,7 +9,7 @@ def deserialize_lines(text: str, trim: bool = False) -> List[str]:
     if text:
         lines = [f"{line} " for line in text.splitlines()]
         if text.endswith(("\n", "\r", "\r\n")):
-            lines.append("")
+            lines.append(" ")
     else:
         lines = [" "]
 

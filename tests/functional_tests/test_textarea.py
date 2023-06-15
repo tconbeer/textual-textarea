@@ -1,35 +1,9 @@
-from typing import List, Type, Union
+from typing import List, Union
 
 import pytest
-from textual.app import App, ComposeResult, CSSPathType
-from textual.driver import Driver
+from textual.app import App
 from textual_textarea.key_handlers import Cursor
 from textual_textarea.textarea import TextArea, TextInput
-
-
-class TextAreaApp(App, inherit_bindings=False):
-    def __init__(
-        self,
-        driver_class: Union[Type[Driver], None] = None,
-        css_path: Union[CSSPathType, None] = None,
-        watch_css: bool = False,
-        use_system_clipboard: bool = True,
-    ):
-        self.use_system_clipboard = use_system_clipboard
-        super().__init__(driver_class, css_path, watch_css)
-
-    def compose(self) -> ComposeResult:
-        yield TextArea(use_system_clipboard=self.use_system_clipboard)
-
-    def on_mount(self) -> None:
-        ta = self.query_one(TextArea)
-        ta.focus()
-
-
-@pytest.fixture(params=[False, True], ids=["no_sys_clipboard", "default"])
-def app(request: pytest.FixtureRequest) -> App:
-    app = TextAreaApp(use_system_clipboard=request.param)
-    return app
 
 
 @pytest.mark.parametrize(
@@ -155,16 +129,16 @@ async def test_keys(
 )
 @pytest.mark.asyncio
 async def test_copy_paste(
-    app: App,
+    app_all_clipboards: App,
     starting_anchor: Cursor,
     starting_cursor: Cursor,
     expected_clipboard: List[str],
 ) -> None:
     original_text = "0123456789\n0123456789\n0123456789"
 
-    async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
-        ti = app.query_one(TextInput)
+    async with app_all_clipboards.run_test() as pilot:
+        ta = app_all_clipboards.query_one(TextArea)
+        ti = app_all_clipboards.query_one(TextInput)
         ta.text = original_text
         ti.selection_anchor = starting_anchor
         ti.cursor = starting_cursor
