@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "textual-textarea"
-version = "0.2.0"
+version = "0.2.1"
 description = "A text area (multi-line input) with syntax highlighting for Textual"
 authors = ["Ted Conbeer <tconbeer@users.noreply.github.com>"]
 license = "MIT"
