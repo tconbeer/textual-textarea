@@ -40,7 +40,7 @@ files = [
     "src/textual_textarea/**/*.py",
     "tests/**/*.py",
 ]
-mypy_path = "stubs"
+mypy_path = "src:stubs"
 
 show_column_numbers = true
 

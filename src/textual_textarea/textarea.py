@@ -526,8 +526,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         Returns:
             (str) The contents of the TextArea.
         """
-        editor = self.query_one(TextInput)
-        return serialize_lines(editor.lines)
+        return serialize_lines(self.text_input.lines)
 
     @text.setter
     def text(self, contents: str) -> None:
@@ -536,9 +535,25 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             contents (str): A string (optionally containing newlines) to
                 set the contents of the TextArea equal to.
         """
-        editor = self.query_one(TextInput)
-        editor.move_cursor(0, 0)
-        editor.lines = deserialize_lines(contents)
+        self.text_input.move_cursor(0, 0)
+        self.text_input.lines = deserialize_lines(contents)
+
+    @property
+    def cursor(self) -> Cursor:
+        """
+        Returns
+            Cursor: The location of the cursor in the TextInput
+        """
+        return self.text_input.cursor
+
+    @cursor.setter
+    def cursor(self, cursor: Union[Cursor, Tuple[int, int]]) -> None:
+        """
+        Args:
+            cursor (Union[Cursor, Tuple[int, int]]): The position (line number, pos)
+            to move the cursor to
+        """
+        self.text_input.move_cursor(cursor[1], cursor[0])
 
     def compose(self) -> ComposeResult:
         with TextContainer():
@@ -549,10 +564,12 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
+        self.text_container = self.query_one(TextContainer)
+        self.text_input = self.query_one(TextInput)
+        self.footer = self.query_one(FooterContainer)
 
     def on_focus(self) -> None:
-        input = self.query_one(TextInput)
-        input.focus()
+        self.text_input.focus()
 
     def action_save(self) -> None:
         self._mount_footer_input("save")
@@ -561,7 +578,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self._mount_footer_input("open")
 
     def _mount_footer_input(self, name: str) -> None:
-        footer = self.query_one(FooterContainer)
         input = CancellableInput(
             id=f"textarea__{name}_input",
             placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
@@ -569,25 +585,24 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         input.styles.background = self.theme_colors.bgcolor
         input.styles.border = "round", self.theme_colors.contrast_text_color
         input.styles.color = self.theme_colors.contrast_text_color
-        footer.mount(input)
+        self.footer.mount(input)
         input.focus()
 
     def on_click(self, event: events.Click) -> None:
         """
         Moves the cursor to the click.
         """
-        input = self.query_one(TextInput)
-        input.cursor_visible = True
-        input.blink_timer.reset()
-        input.move_cursor(event.x - 1, event.y)
-        input.focus()
+        self.text_input.cursor_visible = True
+        self.text_input.blink_timer.reset()
+        self.text_input.move_cursor(event.x - 1, event.y)
+        self.text_input.focus()
 
-    def on_cursor_moved(self, event: TextAreaCursorMoved) -> None:
+    def on_text_area_cursor_moved(self, event: TextAreaCursorMoved) -> None:
         """
         Scrolls the container so the cursor is visible.
         """
         event.stop()
-        container = self.query_one(TextContainer)
+        container = self.text_container
         x_buffer = container.window_region.width // 4
         y_buffer = container.window_region.height // 4
         if event.cursor_x < container.window_region.x + x_buffer:  # scroll left
@@ -610,13 +625,14 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
                 container.window_region.x,
                 event.cursor_y - container.window_region.height + y_buffer,
             )
+        self.text_input.update(self.text_input._content)
 
-    def on_scroll_one(self, event: TextAreaScrollOne) -> None:
+    def on_text_area_scroll_one(self, event: TextAreaScrollOne) -> None:
         event.stop()
         offset = 1 if event.direction == "down" else -1
-        container = self.query_one(TextContainer)
-        container.scroll_to(
-            container.window_region.x, container.window_region.y + offset
+        self.text_container.scroll_to(
+            self.text_container.window_region.x,
+            self.text_container.window_region.y + offset,
         )
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
@@ -654,6 +670,5 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             else:
                 self.text = contents
         message.input.remove()
-        input = self.query_one(TextInput)
-        input.update(input._content)
-        input.focus()
+        self.text_input.update(self.text_input._content)
+        self.text_input.focus()

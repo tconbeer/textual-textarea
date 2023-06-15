@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   Fixes a bug that was preventing the cursor from being scrolled into view
+
 ## [0.2.1] - 2023-06-15
 
 ### Bug Fixes

@@ -2,8 +2,8 @@ from typing import List, Union
 
 import pytest
 from textual.app import App
+from textual_textarea import TextArea
 from textual_textarea.key_handlers import Cursor
-from textual_textarea.textarea import TextArea, TextInput
 
 
 @pytest.mark.parametrize(
@@ -107,17 +107,18 @@ async def test_keys(
         expected_lines = lines
 
     async with app.run_test() as pilot:
-        widget = app.query_one(TextInput)
-        widget.lines = lines.copy()
-        widget.selection_anchor = anchor
-        widget.cursor = cursor
+        widget = app.query_one(TextArea)
+        input = widget.text_input
+        input.lines = lines.copy()
+        input.selection_anchor = anchor
+        input.cursor = cursor
 
         for key in keys:
             await pilot.press(key)
 
-        assert widget.lines == expected_lines
-        assert widget.selection_anchor == expected_anchor
-        assert widget.cursor == expected_cursor
+        assert input.lines == expected_lines
+        assert input.selection_anchor == expected_anchor
+        assert input.cursor == expected_cursor
 
 
 @pytest.mark.parametrize(
@@ -138,7 +139,7 @@ async def test_copy_paste(
 
     async with app_all_clipboards.run_test() as pilot:
         ta = app_all_clipboards.query_one(TextArea)
-        ti = app_all_clipboards.query_one(TextInput)
+        ti = ta.text_input
         ta.text = original_text
         ti.selection_anchor = starting_anchor
         ti.cursor = starting_cursor

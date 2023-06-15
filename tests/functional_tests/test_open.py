@@ -4,7 +4,6 @@ import pytest
 from textual.app import App
 from textual.widgets import Input
 from textual_textarea import TextArea
-from textual_textarea.textarea import TextInput
 
 
 @pytest.mark.parametrize("filename", ["foo.py", "empty.py"])
@@ -32,11 +31,10 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         await pilot.press("enter")
 
         assert ta.text == contents
-        text_input = ta.query_one(TextInput)
-        assert text_input.has_focus
+        assert ta.text_input.has_focus
 
         # make sure the end of the buffer is formatted properly.
         # these previously caused a crash.
         await pilot.press("ctrl+end")
-        assert text_input.cursor.pos >= 0
+        assert ta.cursor.pos >= 0
         await pilot.press("enter")
