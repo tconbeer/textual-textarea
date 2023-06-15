@@ -63,6 +63,19 @@ old_text = ta.text
 ta.text = "New Text!\n\nMany Lines!"
 ```
 
+
+#### Getting and Setting The Cursor Position
+
+The TextArea exposes a `cursor` property that returns a NamedTuple with the position of the cursor. The tuple is (line_number, x_pos):
+
+```python
+ta = self.query_one(TextArea)
+old_cursor = ta.cursor
+ta.cursor = (999, 0)  # the cursor will move as close to line 999, pos 0 as possible
+cursor_line_number = ta.cursor.lno
+cursor_x_position = ta.cursor.pos
+```
+
 #### Getting Theme Colors
 
 If you would like the rest of your app to match the colors from the TextArea's theme, they are exposed via the `theme_colors` property.
