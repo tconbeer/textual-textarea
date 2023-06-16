@@ -45,6 +45,7 @@ class TextInput(Static, can_focus=True):
     clipboard: List[str] = list()
     cursor_visible: reactive[bool] = reactive(True)
     use_system_clipboard: bool = True
+    language: reactive[Union[str, None]] = reactive(None)
 
     def __init__(
         self,
@@ -56,8 +57,6 @@ class TextInput(Static, can_focus=True):
         super().__init__()
         self.theme_colors = theme_colors
         self.language = language
-        if language is not None:
-            self.inline_comment_marker = INLINE_MARKERS.get(language)
         self.theme = theme
         self.use_system_clipboard = use_system_clipboard
 
@@ -303,6 +302,9 @@ class TextInput(Static, can_focus=True):
     def watch_cursor(self) -> None:
         self._scroll_to_cursor()
 
+    def watch_language(self, language: str) -> None:
+        self.inline_comment_marker = INLINE_MARKERS.get(language)
+
     @property
     def _content(self) -> RenderableType:
         syntax = Syntax(
@@ -527,7 +529,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
-        self.language = language
+        self._language = language
         self.theme = theme
         self.theme_colors = WidgetColors.from_theme(self.theme)
         self.use_system_clipboard = use_system_clipboard
@@ -567,10 +569,28 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         self.text_input.move_cursor(cursor[1], cursor[0])
 
+    @property
+    def language(self) -> Union[str, None]:
+        """
+        Returns
+            str | None: The Pygments short name of the active language
+        """
+        return self.text_input.language
+
+    @language.setter
+    def language(self, language: str) -> None:
+        """
+        Args:
+            langage (str | None): The Pygments short name for the new language
+        """
+        self.text_input.language = language
+
     def compose(self) -> ComposeResult:
         with TextContainer():
             yield TextInput(
-                language=self.language, theme=self.theme, theme_colors=self.theme_colors
+                language=self._language,
+                theme=self.theme,
+                theme_colors=self.theme_colors,
             )
         yield FooterContainer(theme_colors=self.theme_colors)
 

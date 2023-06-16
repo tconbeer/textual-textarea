@@ -76,6 +76,18 @@ cursor_line_number = ta.cursor.lno
 cursor_x_position = ta.cursor.pos
 ```
 
+#### Getting and Setting The Language
+
+Syntax highlighting and comment insertion depends on the configured language for the TextArea.
+
+The TextArea exposes a `language` property that returns `None` or a string that is equal to the short name of the [Pygments lexer](https://pygments.org/docs/lexers/) for the currently configured language:
+
+```python
+ta = self.query_one(TextArea)
+old_language = ta.language
+ta.language = "python"
+```
+
 #### Getting Theme Colors
 
 If you would like the rest of your app to match the colors from the TextArea's theme, they are exposed via the `theme_colors` property.
