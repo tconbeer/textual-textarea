@@ -11,7 +11,7 @@ pip install textual-textarea
 Full-featured text editor experience with VS-Code-like bindings, in your Textual App:
 - Syntax highlighting and support for themes.
 - Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>Home/End</kbd>).
-- Select text using <kbd>shift</kbd>.
+- Select text using <kbd>shift</kbd> or click and drag.
 - Open (<kbd>ctrl+o</kbd>) and save (<kbd>ctrl+s</kbd>) files.
 - Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard.
 - Comment selections with <kbd>ctrl+/</kbd>.

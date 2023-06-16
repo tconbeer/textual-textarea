@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
--   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8))
+-   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8)).
+-   Comment characters inserted with <kbd>ctrl+/</kbd> are now based on the language that the
+    TextArea is initialized with ([#24](https://github.com/tconbeer/textual-textarea/issues/24)).
 
 ## [0.2.2] - 2023-06-15
 
