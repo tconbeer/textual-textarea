@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8))
+
 ## [0.2.2] - 2023-06-15
 
 ### Features

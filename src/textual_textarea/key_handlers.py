@@ -2,6 +2,7 @@ import re
 from typing import List, NamedTuple
 
 from textual import log
+from textual.events import MouseEvent
 
 WWB = re.compile(r"\W*\w+\b")
 
@@ -9,6 +10,10 @@ WWB = re.compile(r"\W*\w+\b")
 class Cursor(NamedTuple):
     lno: int
     pos: int
+
+    @classmethod
+    def from_mouse_event(cls, event: MouseEvent) -> "Cursor":
+        return Cursor(event.y, event.x - 1)
 
 
 def handle_arrow(key: str, lines: List[str], cursor: Cursor) -> Cursor:

@@ -588,14 +588,45 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.footer.mount(input)
         input.focus()
 
-    def on_click(self, event: events.Click) -> None:
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        """
+        Moves the anchor and cursor to the click.
+        """
+        event.stop()
+        self.capture_mouse()
+        self.text_input.cursor_visible = True
+        self.text_input.blink_timer.reset()
+        self.text_input.selection_anchor = Cursor.from_mouse_event(event)
+        self.text_input.move_cursor(event.x - 1, event.y)
+        self.text_input.focus()
+
+    def on_mouse_move(self, event: events.MouseMove) -> None:
+        """
+        Updates the cursor if the button is pressed
+        """
+        if event.button == 1:
+            self.text_input.move_cursor(event.x - 1, event.y)
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
         """
         Moves the cursor to the click.
         """
+        event.stop()
+        self.release_mouse()
         self.text_input.cursor_visible = True
         self.text_input.blink_timer.reset()
-        self.text_input.move_cursor(event.x - 1, event.y)
+        if self.text_input.selection_anchor == Cursor.from_mouse_event(event):
+            # simple click
+            self.text_input.selection_anchor = None
+        else:
+            self.text_input.move_cursor(event.x - 1, event.y)
         self.text_input.focus()
+
+    def on_click(self, event: events.Click) -> None:
+        """
+        Click duplicates MouseUp and MouseDown, so we just capture and kill this event.
+        """
+        event.stop()
 
     def on_text_area_cursor_moved(self, event: TextAreaCursorMoved) -> None:
         """
