@@ -14,6 +14,7 @@ from textual.widgets import Input, Static
 
 from textual_textarea.cancellable_input import CancellableInput
 from textual_textarea.colors import WidgetColors
+from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor, handle_arrow
@@ -44,6 +45,7 @@ class TextInput(Static, can_focus=True):
     clipboard: List[str] = list()
     cursor_visible: reactive[bool] = reactive(True)
     use_system_clipboard: bool = True
+    language: reactive[Union[str, None]] = reactive(None)
 
     def __init__(
         self,
@@ -168,20 +170,29 @@ class TextInput(Static, can_focus=True):
             self.cursor = Cursor(lno=len(self.lines) - 1, pos=len(self.lines[-1]) - 1)
         elif event.key == "ctrl+underscore":  # actually ctrl+/
             event.stop()
-            lines, first, last = self._get_selected_lines(selection_before)
-            stripped_lines = [line.lstrip() for line in lines]
-            indents = [len(line) - len(line.lstrip()) for line in lines]
-            if all([line.startswith("-- ") for line in stripped_lines]):
-                no_comment_lines = [line[3:] for line in stripped_lines]
-                self.lines[first.lno : last.lno + 1] = [
-                    f"{' ' * indent}{stripped_line}"
-                    for indent, stripped_line in zip(indents, no_comment_lines)
-                ]
-            else:
-                self.lines[first.lno : last.lno + 1] = [
-                    f"{' ' * indent}-- {stripped_line}"
-                    for indent, stripped_line in zip(indents, stripped_lines)
-                ]
+            if self.inline_comment_marker:
+                lines, first, last = self._get_selected_lines(selection_before)
+                stripped_lines = [line.lstrip() for line in lines]
+                indents = [len(line) - len(line.lstrip()) for line in lines]
+                if all(
+                    [
+                        line.startswith(self.inline_comment_marker)
+                        for line in stripped_lines
+                    ]
+                ):
+                    no_comment_lines = [
+                        line[len(self.inline_comment_marker) :].lstrip()
+                        for line in stripped_lines
+                    ]
+                    self.lines[first.lno : last.lno + 1] = [
+                        f"{' ' * indent}{line}"
+                        for indent, line in zip(indents, no_comment_lines)
+                    ]
+                else:
+                    self.lines[first.lno : last.lno + 1] = [
+                        f"{' ' * indent}{self.inline_comment_marker} {stripped_line}"
+                        for indent, stripped_line in zip(indents, stripped_lines)
+                    ]
         elif event.key in ("ctrl+c", "ctrl+x"):
             event.stop()
             if selection_before:
@@ -290,6 +301,9 @@ class TextInput(Static, can_focus=True):
 
     def watch_cursor(self) -> None:
         self._scroll_to_cursor()
+
+    def watch_language(self, language: str) -> None:
+        self.inline_comment_marker = INLINE_MARKERS.get(language)
 
     @property
     def _content(self) -> RenderableType:
@@ -515,7 +529,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
-        self.language = language
+        self._language = language
         self.theme = theme
         self.theme_colors = WidgetColors.from_theme(self.theme)
         self.use_system_clipboard = use_system_clipboard
@@ -555,10 +569,28 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         self.text_input.move_cursor(cursor[1], cursor[0])
 
+    @property
+    def language(self) -> Union[str, None]:
+        """
+        Returns
+            str | None: The Pygments short name of the active language
+        """
+        return self.text_input.language
+
+    @language.setter
+    def language(self, language: str) -> None:
+        """
+        Args:
+            langage (str | None): The Pygments short name for the new language
+        """
+        self.text_input.language = language
+
     def compose(self) -> ComposeResult:
         with TextContainer():
             yield TextInput(
-                language=self.language, theme=self.theme, theme_colors=self.theme_colors
+                language=self._language,
+                theme=self.theme,
+                theme_colors=self.theme_colors,
             )
         yield FooterContainer(theme_colors=self.theme_colors)
 

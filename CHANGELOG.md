@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
--   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8))
+-   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8)).
+-   Comment characters inserted with <kbd>ctrl+/</kbd> are now based on the language that the
+    TextArea is initialized with ([#24](https://github.com/tconbeer/textual-textarea/issues/24)).
+-   TextArea exposes a `language` property for the currently-configured language.
 
 ## [0.2.2] - 2023-06-15
 
@@ -14,7 +17,7 @@ All notable changes to this project will be documented in this file.
 -   Adds 3 attributes to TextArea to make it easier to access the child widgets: `text_input`, `text_container`, and `footer`.
 ### Bug Fixes
 
--   Fixes a bug that was preventing the cursor from being scrolled into view
+-   Fixes a bug that was preventing the cursor from being scrolled into view.
 
 ## [0.2.1] - 2023-06-15
 

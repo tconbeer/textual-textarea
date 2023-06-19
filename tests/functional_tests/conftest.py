@@ -12,13 +12,17 @@ class TextAreaApp(App, inherit_bindings=False):
         driver_class: Union[Type[Driver], None] = None,
         css_path: Union[CSSPathType, None] = None,
         watch_css: bool = False,
+        language: Union[str, None] = None,
         use_system_clipboard: bool = True,
     ):
+        self.language = language
         self.use_system_clipboard = use_system_clipboard
         super().__init__(driver_class, css_path, watch_css)
 
     def compose(self) -> ComposeResult:
-        yield TextArea(use_system_clipboard=self.use_system_clipboard)
+        yield TextArea(
+            language=self.language, use_system_clipboard=self.use_system_clipboard
+        )
 
     def on_mount(self) -> None:
         ta = self.query_one(TextArea)
@@ -27,7 +31,7 @@ class TextAreaApp(App, inherit_bindings=False):
 
 @pytest.fixture
 def app() -> App:
-    app = TextAreaApp()
+    app = TextAreaApp(language="python")
     return app
 
 

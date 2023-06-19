@@ -11,7 +11,7 @@ pip install textual-textarea
 Full-featured text editor experience with VS-Code-like bindings, in your Textual App:
 - Syntax highlighting and support for themes.
 - Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>Home/End</kbd>).
-- Select text using <kbd>shift</kbd>.
+- Select text using <kbd>shift</kbd> or click and drag.
 - Open (<kbd>ctrl+o</kbd>) and save (<kbd>ctrl+s</kbd>) files.
 - Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard.
 - Comment selections with <kbd>ctrl+/</kbd>.
@@ -74,6 +74,18 @@ old_cursor = ta.cursor
 ta.cursor = (999, 0)  # the cursor will move as close to line 999, pos 0 as possible
 cursor_line_number = ta.cursor.lno
 cursor_x_position = ta.cursor.pos
+```
+
+#### Getting and Setting The Language
+
+Syntax highlighting and comment insertion depends on the configured language for the TextArea.
+
+The TextArea exposes a `language` property that returns `None` or a string that is equal to the short name of the [Pygments lexer](https://pygments.org/docs/lexers/) for the currently configured language:
+
+```python
+ta = self.query_one(TextArea)
+old_language = ta.language
+ta.language = "python"
 ```
 
 #### Getting Theme Colors
