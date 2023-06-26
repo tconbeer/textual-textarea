@@ -78,6 +78,45 @@ class TextInput(Static, can_focus=True):
         self.cursor_visible = False
         self.update(self._content)
 
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        """
+        Moves the anchor and cursor to the click.
+        """
+        event.stop()
+        self.cursor_visible = True
+        self.blink_timer.reset()
+        self.selection_anchor = Cursor.from_mouse_event(event)
+        self.move_cursor(event.x - 1, event.y)
+        self.focus()
+
+    def on_mouse_move(self, event: events.MouseMove) -> None:
+        """
+        Updates the cursor if the button is pressed while the mouse
+        is moving.
+        """
+        if event.button == 1:
+            self.move_cursor(event.x - 1, event.y)
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        """
+        Moves the cursor to the click.
+        """
+        event.stop()
+        self.cursor_visible = True
+        self.blink_timer.reset()
+        if self.selection_anchor == Cursor.from_mouse_event(event):
+            # simple click
+            self.selection_anchor = None
+        else:
+            self.move_cursor(event.x - 1, event.y)
+        self.focus()
+
+    def on_click(self, event: events.Click) -> None:
+        """
+        Click duplicates MouseUp and MouseDown, so we just capture and kill this event.
+        """
+        event.stop()
+
     def on_paste(self, event: events.Paste) -> None:
         """
         If the user hits ctrl+v, we don't get that keypress;
@@ -620,54 +659,14 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.footer.mount(input)
         input.focus()
 
-    def on_mouse_down(self, event: events.MouseDown) -> None:
-        """
-        Moves the anchor and cursor to the click.
-        """
-        event.stop()
-        self.capture_mouse()
-        self.text_input.cursor_visible = True
-        self.text_input.blink_timer.reset()
-        self.text_input.selection_anchor = Cursor.from_mouse_event(event)
-        self.text_input.move_cursor(event.x - 1, event.y)
-        self.text_input.focus()
-
-    def on_mouse_move(self, event: events.MouseMove) -> None:
-        """
-        Updates the cursor if the button is pressed
-        """
-        if event.button == 1:
-            self.text_input.move_cursor(event.x - 1, event.y)
-
-    def on_mouse_up(self, event: events.MouseUp) -> None:
-        """
-        Moves the cursor to the click.
-        """
-        event.stop()
-        self.release_mouse()
-        self.text_input.cursor_visible = True
-        self.text_input.blink_timer.reset()
-        if self.text_input.selection_anchor == Cursor.from_mouse_event(event):
-            # simple click
-            self.text_input.selection_anchor = None
-        else:
-            self.text_input.move_cursor(event.x - 1, event.y)
-        self.text_input.focus()
-
-    def on_click(self, event: events.Click) -> None:
-        """
-        Click duplicates MouseUp and MouseDown, so we just capture and kill this event.
-        """
-        event.stop()
-
     def on_text_area_cursor_moved(self, event: TextAreaCursorMoved) -> None:
         """
         Scrolls the container so the cursor is visible.
         """
         event.stop()
         container = self.text_container
-        x_buffer = container.window_region.width // 4
-        y_buffer = container.window_region.height // 4
+        x_buffer = max(container.window_region.width // 6, 2)
+        y_buffer = max(container.window_region.height // 6, 2)
         if event.cursor_x < container.window_region.x + x_buffer:  # scroll left
             container.scroll_to(event.cursor_x - x_buffer, container.window_region.y)
         elif (
