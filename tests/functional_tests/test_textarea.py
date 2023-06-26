@@ -121,6 +121,30 @@ async def test_keys(
         assert input.cursor == expected_cursor
 
 
+@pytest.mark.asyncio
+async def test_move_cursor(app: App) -> None:
+    async with app.run_test():
+        ta = app.query_one(TextArea)
+        ti = ta.text_input
+        ti.lines = [f"{'X' * i} " for i in range(10)]
+
+        assert ta.cursor == Cursor(0, 0)
+        for i in range(10):
+            ti.move_cursor(100, i)
+            assert ta.cursor == Cursor(i, i)
+            ti.move_cursor(0, i)
+            assert ta.cursor == Cursor(i, 0)
+
+        ti.move_cursor(-100, -100)
+        assert ta.cursor == Cursor(0, 0)
+
+        ti.move_cursor(-10, 5)
+        assert ta.cursor == Cursor(5, 0)
+
+        ti.move_cursor(5, -5)
+        assert ta.cursor == Cursor(0, 0)
+
+
 @pytest.mark.parametrize(
     "starting_anchor,starting_cursor,expected_clipboard",
     [

@@ -518,10 +518,10 @@ class TextInput(Static, can_focus=True):
 
     def move_cursor(self, x: int, y: int) -> None:
         max_y = len(self.lines) - 1
-        safe_y = min(max_y, y)
+        safe_y = max(0, min(max_y, y))
         max_x = len(self.lines[safe_y]) - 1
-        safe_x = min(max_x, x)
-        self.cursor = Cursor(lno=max(0, safe_y), pos=max(0, safe_x))
+        safe_x = max(0, min(max_x, x))
+        self.cursor = Cursor(lno=safe_y, pos=safe_x)
         self.update(self._content)
 
 

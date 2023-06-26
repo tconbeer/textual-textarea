@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   Fixes issue where text area was aggressively capturing mouse events and not responding to mouse up events,
+    which would cause issues if your App had widgets other than the TextArea ([#42](https://github.com/tconbeer/textual-textarea/issues/42)).
+-   Fixes an issue where <kbd>PageUp</kbd> could cause a crash ([#46](https://github.com/tconbeer/textual-textarea/issues/46)).
+
 ## [0.3.0] - 2023-06-19
 
 -   Select text using click and drag ([#8](https://github.com/tconbeer/textual-textarea/issues/8)).
