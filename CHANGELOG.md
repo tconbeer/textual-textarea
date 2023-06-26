@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2023-06-26
+
 ### Bug Fixes
 
 -   Fixes issue where text area was aggressively capturing mouse events and not responding to mouse up events,
@@ -59,7 +61,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.3.1...HEAD
+
+[0.3.1]: https://github.com/tconbeer/textual-textarea/compare/0.3.0...0.3.1
 
 [0.3.0]: https://github.com/tconbeer/textual-textarea/compare/0.2.2...0.3.0
 
