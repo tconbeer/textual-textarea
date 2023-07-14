@@ -258,7 +258,7 @@ class TextInput(Static, can_focus=True):
                 self.cursor = Cursor(
                     new_lno, min(first.pos, len(self.lines[new_lno]) - 1)
                 )
-        elif event.key == "ctrl+u":
+        elif event.key in ("ctrl+u", "ctrl+v"):
             event.stop()
             self._insert_clipboard_at_selection(selection_before, self.cursor)
         elif event.key == "tab":

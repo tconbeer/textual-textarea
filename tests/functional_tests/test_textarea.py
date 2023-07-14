@@ -203,7 +203,7 @@ async def test_copy_paste(
         assert ti.clipboard == expected_clipboard
         assert ta.text == ""
 
-        await pilot.press("ctrl+u")
+        await pilot.press("ctrl+v")
         assert ti.selection_anchor is None
         assert ti.cursor == Cursor(
             len(expected_clipboard) - 1, len(expected_clipboard[-1])
