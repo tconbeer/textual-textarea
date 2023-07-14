@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] - 2023-07-14
+
 ### Bug Fixes
 
 -   Improves support for pasting text with `ctrl+v` on all platforms. ([#53](https://github.com/tconbeer/textual-textarea/issues/53)).
@@ -65,7 +67,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.3.2...HEAD
+
+[0.3.2]: https://github.com/tconbeer/textual-textarea/compare/0.3.1...0.3.2
 
 [0.3.1]: https://github.com/tconbeer/textual-textarea/compare/0.3.0...0.3.1
 
