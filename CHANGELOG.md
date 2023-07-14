@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   Improves support for pasting text with `ctrl+v` on all platforms. ([#53](https://github.com/tconbeer/textual-textarea/issues/53)).
+
 ## [0.3.1] - 2023-06-26
 
 ### Bug Fixes
