@@ -1,4 +1,5 @@
 from math import ceil, floor
+from os.path import expanduser
 from typing import List, Tuple, Union
 
 import pyperclip
@@ -701,9 +702,10 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         Handle the submit event for the Save and Open modals.
         """
+        expanded_path = expanduser(message.input.value)
         if message.input.id == "textarea__save_input":
             try:
-                with open(message.input.value, "w") as f:
+                with open(expanded_path, "w") as f:
                     f.write(self.text)
             except OSError as e:
                 self.app.push_screen(
@@ -717,7 +719,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
                 )
         elif message.input.id == "textarea__open_input":
             try:
-                with open(message.input.value, "r") as f:
+                with open(expanded_path, "r") as f:
                     contents = f.read()
             except OSError as e:
                 self.app.push_screen(
