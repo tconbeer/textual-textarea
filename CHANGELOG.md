@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.3.3] - 2023-07-28
 
+### Features
+
+-   The open and save file inputs now expand the user home directory (`~`).
+
+### Bug Fixes
+
+-   Selection should be better-maintained when pressing F-keys.
+
 ## [0.3.2] - 2023-07-14
 
 ### Bug Fixes
