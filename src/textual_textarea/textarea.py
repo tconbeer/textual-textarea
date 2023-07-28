@@ -143,7 +143,25 @@ class TextInput(Static, can_focus=True):
             pass  # todo: shift+delete should delete the whole line
         elif event.key == "shift+tab":
             pass
-        elif event.key in ("ctrl+underscore", "ctrl+`", "ctrl+@", "ctrl+s", "ctrl+c"):
+        elif event.key in (
+            "ctrl+underscore",
+            "ctrl+`",
+            "ctrl+@",
+            "ctrl+s",
+            "ctrl+c",
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5",
+            "f6",
+            "f7",
+            "f8",
+            "f9",
+            "f10",
+            "f11",
+            "f12",
+        ):
             pass  #  these should maintain selection
         elif event.key == "ctrl+a":
             self.selection_anchor = Cursor(0, 0)
