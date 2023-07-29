@@ -541,11 +541,22 @@ class TextInput(Static, can_focus=True):
             return self.lines[cursor.lno][cursor.pos - 1]
 
     def move_cursor(self, x: int, y: int) -> None:
+        self.cursor = self._get_valid_cursor(x, y)
+        self.update(self._content)
+
+    def move_selection_anchor(self, x: int, y: int) -> None:
+        self.selection_anchor = self._get_valid_cursor(x, y)
+        self.update(self._content)
+
+    def _get_valid_cursor(self, x: int, y: int) -> Cursor:
         max_y = len(self.lines) - 1
         safe_y = max(0, min(max_y, y))
         max_x = len(self.lines[safe_y]) - 1
         safe_x = max(0, min(max_x, x))
-        self.cursor = Cursor(lno=safe_y, pos=safe_x)
+        return Cursor(lno=safe_y, pos=safe_x)
+
+    def clear_selection_anchor(self) -> None:
+        self.selection_anchor = None
         self.update(self._content)
 
 
@@ -616,6 +627,23 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.text_input.lines = deserialize_lines(contents)
 
     @property
+    def selected_text(self) -> str:
+        """
+        Returns:
+            str: The contents of the TextArea between the selection
+            anchor and the cursor. Returns an empty string if the
+            selection anchor is not set.
+        """
+        anchor = self.text_input.selection_anchor
+        if anchor is None:
+            return ""
+        else:
+            lines, first, last = self.text_input._get_selected_lines(anchor)
+            lines[-1] = lines[-1][: last.pos]
+            lines[0] = lines[0][first.pos :]
+            return serialize_lines(lines)
+
+    @property
     def cursor(self) -> Cursor:
         """
         Returns
@@ -631,6 +659,27 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             to move the cursor to
         """
         self.text_input.move_cursor(cursor[1], cursor[0])
+
+    @property
+    def selection_anchor(self) -> Union[Cursor, None]:
+        """
+        Returns
+            Cursor: The location of the selection anchor in the TextInput
+        """
+        return self.text_input.selection_anchor
+
+    @selection_anchor.setter
+    def selection_anchor(self, cursor: Union[Cursor, Tuple[int, int], None]) -> None:
+        """
+        Args:
+            cursor (Union[Cursor, Tuple[int, int], None]): The position
+            (line number, pos) to move the selection anchor to, or None
+            to clear the selection.
+        """
+        if cursor is None:
+            self.text_input.clear_selection_anchor()
+        else:
+            self.text_input.move_selection_anchor(cursor[1], cursor[0])
 
     @property
     def language(self) -> Union[str, None]:

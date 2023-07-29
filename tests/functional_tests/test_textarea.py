@@ -210,3 +210,37 @@ async def test_copy_paste(
         )
         assert ti.clipboard == expected_clipboard
         assert ta.text == "\n".join([line.rstrip() for line in expected_clipboard])
+
+
+@pytest.mark.asyncio
+async def test_text_property(app: App) -> None:
+    async with app.run_test():
+        ta = app.query_one(TextArea)
+        assert ta.text == ""
+        assert ta.selected_text == ""
+
+        ta.text = "select\nfoo"
+        assert ta.text_input.lines == ["select ", "foo "]
+        assert ta.selection_anchor is None
+        assert ta.selected_text == ""
+
+        # this input should be validated and cursor moved
+        # to EOF
+        ta.cursor = Cursor(100, 100)
+        assert ta.cursor == Cursor(1, 3)
+        assert ta.selection_anchor is None
+        assert ta.selected_text == ""
+
+        ta.selection_anchor = Cursor(0, 0)
+        assert ta.selection_anchor == Cursor(0, 0)
+        assert ta.selected_text == ta.text
+
+        ta.selection_anchor = Cursor(0, 1)
+        ta.cursor = Cursor(1, 1)
+        assert ta.selected_text == "elect\nf"
+
+        ta.text_input.lines = ["a ", " ", "b ", "c "]
+        assert ta.text == "a\n\nb\nc"
+        ta.cursor = Cursor(3, 0)
+        assert ta.selection_anchor == Cursor(0, 1)
+        assert ta.selected_text == "\n\nb\n"
