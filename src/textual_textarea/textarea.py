@@ -38,11 +38,6 @@ class TextInput(Static, can_focus=True):
             width: auto;
             padding: 0 1;
         }
-        #validation_label {
-            color: red;
-            text-style: italic;
-            margin: 0 0 0 3;
-        }
     """
 
     lines: reactive[List[str]] = reactive(lambda: list(" "))
@@ -571,6 +566,14 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
             e.g., "bw", "github-dark", "solarized-light".
         theme_colors (WidgetColors): The colors extracted from the theme.
+    """
+
+    DEFAULT_CSS = """
+    #validation_label {
+        color: $error;
+        text-style: italic;
+        margin: 0 0 0 3;
+    }
     """
 
     BINDINGS = [
