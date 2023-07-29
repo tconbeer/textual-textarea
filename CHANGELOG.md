@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Adds a suggester to autocomplete paths for the save and open file inputs.
+-   Adds a validator to validate paths for the save and open file inputs.
+-   `textual-textarea` now requires `textual` >=0.27.0
+
 ## [0.3.3] - 2023-07-28
 
 ### Features

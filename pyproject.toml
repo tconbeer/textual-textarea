@@ -15,12 +15,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-textual = ">=0.21.0, <1.0.0"
+textual = ">=0.27.0, <1.0.0"
 pyperclip = "^1.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = {version="0.21.0", extras=["dev"]}
+textual = {version="0.27.0", extras=["dev"]}
 
 [tool.poetry.group.static.dependencies]
 black = "^23.3.0"
