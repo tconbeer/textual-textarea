@@ -766,7 +766,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         Scrolls the container so the cursor is visible.
         """
-        event.stop()
         container = self.text_container
         x_buffer = max(container.window_region.width // 6, 2)
         y_buffer = max(container.window_region.height // 6, 2)
