@@ -149,6 +149,9 @@ class TextInput(Static, can_focus=True):
             "ctrl+@",
             "ctrl+s",
             "ctrl+c",
+            "ctrl+enter",
+            "ctrl+j",
+            "ctrl+e",
             "f1",
             "f2",
             "f3",
@@ -246,11 +249,29 @@ class TextInput(Static, can_focus=True):
                         f"{' ' * indent}{line}"
                         for indent, line in zip(indents, no_comment_lines)
                     ]
+                    self.move_cursor(
+                        self.cursor.pos - len(self.inline_comment_marker) - 1,
+                        self.cursor.lno,
+                    )
+                    if selection_before:
+                        self.move_selection_anchor(
+                            selection_before.pos - len(self.inline_comment_marker) - 1,
+                            selection_before.lno,
+                        )
                 else:
                     self.lines[first.lno : last.lno + 1] = [
                         f"{' ' * indent}{self.inline_comment_marker} {stripped_line}"
                         for indent, stripped_line in zip(indents, stripped_lines)
                     ]
+                    self.move_cursor(
+                        self.cursor.pos + len(self.inline_comment_marker) + 1,
+                        self.cursor.lno,
+                    )
+                    if selection_before:
+                        self.move_selection_anchor(
+                            selection_before.pos + len(self.inline_comment_marker) + 1,
+                            selection_before.lno,
+                        )
         elif event.key in ("ctrl+c", "ctrl+x"):
             event.stop()
             if selection_before:
