@@ -85,7 +85,9 @@ class PathInput(Input):
         dir_okay: bool = True,
         file_okay: bool = True,
         must_exist: bool = False,
+        tab_advances_focus: bool = False,
     ) -> None:
+        self.tab_advances_focus = tab_advances_focus
         super().__init__(
             value,
             placeholder,
@@ -103,4 +105,7 @@ class PathInput(Input):
         self.post_message(CancelPathInput())
 
     def action_complete(self) -> None:
-        self.action_cursor_right()
+        if self._suggestion and self._suggestion != self.value:
+            self.action_cursor_right()
+        elif self.tab_advances_focus:
+            self.app.action_focus_next()

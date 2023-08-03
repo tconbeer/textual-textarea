@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Adds a parameter to PathInput to allow <kbd>tab</kbd> to advance the focus.
+
 ## [0.4.0] - 2023-08-03
 
 -   Adds a suggester to autocomplete paths for the save and open file inputs.
