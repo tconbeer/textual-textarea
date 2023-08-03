@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2023-08-03
+
 -   Adds a suggester to autocomplete paths for the save and open file inputs.
 -   Adds a validator to validate paths for the save and open file inputs.
 -   `textual-textarea` now requires `textual` >=0.27.0
@@ -83,7 +85,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.3.3...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.0...HEAD
+
+[0.4.0]: https://github.com/tconbeer/textual-textarea/compare/0.3.3...0.4.0
 
 [0.3.3]: https://github.com/tconbeer/textual-textarea/compare/0.3.2...0.3.3
 
