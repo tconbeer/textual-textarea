@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.4.2] - 2023-08-03
+
 -   No longer clears selection for more keystrokes (e.g,. <kbd>ctrl+j</kbd>)
 -   Better-maintains selection and cursor position when bulk commenting or uncommenting with <kbd>ctrl+/</kbd>
 
@@ -91,7 +94,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.2...HEAD
+
+[0.4.2]: https://github.com/tconbeer/textual-textarea/compare/0.4.1...0.4.2
 
 [0.4.1]: https://github.com/tconbeer/textual-textarea/compare/0.4.0...0.4.1
 
