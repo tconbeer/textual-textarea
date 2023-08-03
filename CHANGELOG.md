@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+-   No longer clears selection for more keystrokes (e.g,. <kbd>ctrl+j</kbd>)
+-   Better-maintains selection and cursor position when bulk commenting or uncommenting with <kbd>ctrl+/</kbd>
 
 ## [0.4.1] - 2023-08-03
 
