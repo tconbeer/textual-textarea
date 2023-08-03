@@ -63,6 +63,11 @@ old_text = ta.text
 ta.text = "New Text!\n\nMany Lines!"
 ```
 
+Similarly, the TextArea exposes a `selected_text` property (read-only):
+```python
+ta = self.query_one(TextArea)
+selection = ta.selected_text
+```
 
 #### Getting and Setting The Cursor Position
 
@@ -74,6 +79,15 @@ old_cursor = ta.cursor
 ta.cursor = (999, 0)  # the cursor will move as close to line 999, pos 0 as possible
 cursor_line_number = ta.cursor.lno
 cursor_x_position = ta.cursor.pos
+```
+
+Similarly, there is a `selection_anchor` property (`Union[None, Cursor]`):
+
+```python
+ta = self.query_one(TextArea)
+anchor = ta.selection_anchor # will be None if no text is selected
+ta.selection_anchor = (999, 0)  # the anchor will move as close to line 999, pos 0 as possible
+ta.selection_anchor = None # the selection will be cleared
 ```
 
 #### Getting and Setting The Language

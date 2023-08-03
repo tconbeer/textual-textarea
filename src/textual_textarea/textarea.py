@@ -11,15 +11,15 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Input, Static
+from textual.widgets import Input, Label, Static
 
-from textual_textarea.cancellable_input import CancellableInput
 from textual_textarea.colors import WidgetColors
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor, handle_arrow
 from textual_textarea.messages import TextAreaCursorMoved, TextAreaScrollOne
+from textual_textarea.path_input import PathInput
 from textual_textarea.serde import deserialize_lines, serialize_lines
 
 BRACKETS = {
@@ -37,6 +37,11 @@ class TextInput(Static, can_focus=True):
             height: auto;
             width: auto;
             padding: 0 1;
+        }
+        #validation_label {
+            color: red;
+            text-style: italic;
+            margin: 0 0 0 3;
         }
     """
 
@@ -536,11 +541,22 @@ class TextInput(Static, can_focus=True):
             return self.lines[cursor.lno][cursor.pos - 1]
 
     def move_cursor(self, x: int, y: int) -> None:
+        self.cursor = self._get_valid_cursor(x, y)
+        self.update(self._content)
+
+    def move_selection_anchor(self, x: int, y: int) -> None:
+        self.selection_anchor = self._get_valid_cursor(x, y)
+        self.update(self._content)
+
+    def _get_valid_cursor(self, x: int, y: int) -> Cursor:
         max_y = len(self.lines) - 1
         safe_y = max(0, min(max_y, y))
         max_x = len(self.lines[safe_y]) - 1
         safe_x = max(0, min(max_x, x))
-        self.cursor = Cursor(lno=safe_y, pos=safe_x)
+        return Cursor(lno=safe_y, pos=safe_x)
+
+    def clear_selection_anchor(self) -> None:
+        self.selection_anchor = None
         self.update(self._content)
 
 
@@ -611,6 +627,23 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.text_input.lines = deserialize_lines(contents)
 
     @property
+    def selected_text(self) -> str:
+        """
+        Returns:
+            str: The contents of the TextArea between the selection
+            anchor and the cursor. Returns an empty string if the
+            selection anchor is not set.
+        """
+        anchor = self.text_input.selection_anchor
+        if anchor is None:
+            return ""
+        else:
+            lines, first, last = self.text_input._get_selected_lines(anchor)
+            lines[-1] = lines[-1][: last.pos]
+            lines[0] = lines[0][first.pos :]
+            return serialize_lines(lines)
+
+    @property
     def cursor(self) -> Cursor:
         """
         Returns
@@ -626,6 +659,27 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             to move the cursor to
         """
         self.text_input.move_cursor(cursor[1], cursor[0])
+
+    @property
+    def selection_anchor(self) -> Union[Cursor, None]:
+        """
+        Returns
+            Cursor: The location of the selection anchor in the TextInput
+        """
+        return self.text_input.selection_anchor
+
+    @selection_anchor.setter
+    def selection_anchor(self, cursor: Union[Cursor, Tuple[int, int], None]) -> None:
+        """
+        Args:
+            cursor (Union[Cursor, Tuple[int, int], None]): The position
+            (line number, pos) to move the selection anchor to, or None
+            to clear the selection.
+        """
+        if cursor is None:
+            self.text_input.clear_selection_anchor()
+        else:
+            self.text_input.move_selection_anchor(cursor[1], cursor[0])
 
     @property
     def language(self) -> Union[str, None]:
@@ -650,7 +704,8 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
                 theme=self.theme,
                 theme_colors=self.theme_colors,
             )
-        yield FooterContainer(theme_colors=self.theme_colors)
+        with FooterContainer(theme_colors=self.theme_colors):
+            yield Label("", id="validation_label")
 
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
@@ -661,16 +716,42 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def on_focus(self) -> None:
         self.text_input.focus()
 
+    def on_click(self) -> None:
+        self.text_input.focus()
+
     def action_save(self) -> None:
+        self._clear_footer_input()
         self._mount_footer_input("save")
 
     def action_load(self) -> None:
+        self._clear_footer_input()
         self._mount_footer_input("open")
 
+    def _clear_footer_input(self) -> None:
+        try:
+            self.footer.query_one(PathInput).remove()
+        except Exception:
+            pass
+        try:
+            self.footer.query_one(Label).update("")
+        except Exception:
+            pass
+
+    def on_cancel_path_input(self) -> None:
+        self._clear_footer_input()
+
     def _mount_footer_input(self, name: str) -> None:
-        input = CancellableInput(
+        if name == "open":
+            file_okay, dir_okay, must_exist = True, False, True
+        else:
+            file_okay, dir_okay, must_exist = True, False, False
+
+        input = PathInput(
             id=f"textarea__{name}_input",
             placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
+            file_okay=file_okay,
+            dir_okay=dir_okay,
+            must_exist=must_exist,
         )
         input.styles.background = self.theme_colors.bgcolor
         input.styles.border = "round", self.theme_colors.contrast_text_color
@@ -716,6 +797,14 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             self.text_container.window_region.y + offset,
         )
 
+    def on_input_changed(self, message: Input.Changed) -> None:
+        if message.input.id in ("textarea__save_input", "textarea__open_input"):
+            label = self.footer.query_one(Label)
+            if message.validation_result and not message.validation_result.is_valid:
+                label.update(";".join(message.validation_result.failure_descriptions))
+            else:
+                label.update("")
+
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """
         Handle the submit event for the Save and Open modals.
@@ -751,6 +840,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
                 )
             else:
                 self.text = contents
-        message.input.remove()
+        self._clear_footer_input()
         self.text_input.update(self.text_input._content)
         self.text_input.focus()
