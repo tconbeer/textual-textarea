@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2023-08-03
+
 -   Adds a parameter to PathInput to allow <kbd>tab</kbd> to advance the focus.
 
 ## [0.4.0] - 2023-08-03
@@ -87,7 +89,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.1...HEAD
+
+[0.4.1]: https://github.com/tconbeer/textual-textarea/compare/0.4.0...0.4.1
 
 [0.4.0]: https://github.com/tconbeer/textual-textarea/compare/0.3.3...0.4.0
 
