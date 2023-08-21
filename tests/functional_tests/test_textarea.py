@@ -244,3 +244,72 @@ async def test_text_property(app: App) -> None:
         ta.cursor = Cursor(3, 0)
         assert ta.selection_anchor == Cursor(0, 1)
         assert ta.selected_text == "\n\nb\n"
+
+
+@pytest.mark.asyncio
+async def test_undo_redo(app: App) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_one(TextArea)
+        ti = ta.text_input
+        assert ti
+        assert ti.has_focus
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 1
+        assert ti.undo_stack[0].cursor == Cursor(0, 0)
+        assert not ti.redo_stack
+
+        for char in "foo":
+            await pilot.press(char)
+        await pilot.pause(0.6)
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 2
+        assert ti.undo_stack[-1].lines == ["foo "]
+        assert ti.undo_stack[-1].cursor == Cursor(0, 3)
+        assert ti.undo_stack[-1].selection_anchor is None
+
+        await pilot.press("enter")
+        for char in "bar":
+            await pilot.press(char)
+        await pilot.pause(0.6)
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 3
+        assert ti.undo_stack[-1].lines == ["foo ", "bar "]
+        assert ti.undo_stack[-1].cursor == Cursor(1, 3)
+        assert ti.undo_stack[-1].selection_anchor is None
+
+        await pilot.press("ctrl+z")
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 2
+        assert ti.undo_stack[-1].lines == ["foo "]
+        assert ti.lines == ["foo "]
+        assert ti.cursor == Cursor(0, 3)
+        assert ti.redo_stack
+        assert len(ti.redo_stack) == 1
+        assert ti.redo_stack[-1].lines == ["foo ", "bar "]
+
+        await pilot.press("ctrl+z")
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 1
+        assert ti.undo_stack[-1].lines == [" "]
+        assert ti.lines == [" "]
+        assert ti.cursor == Cursor(0, 0)
+        assert ti.redo_stack
+        assert len(ti.redo_stack) == 2
+        assert ti.redo_stack[-1].lines == ["foo "]
+
+        await pilot.press("ctrl+y")
+        assert ti.undo_stack
+        assert len(ti.undo_stack) == 2
+        assert ti.undo_stack[-1].lines == ["foo "]
+        assert ti.lines == ["foo "]
+        assert ti.cursor == Cursor(0, 3)
+        assert ti.redo_stack
+        assert len(ti.redo_stack) == 1
+        assert ti.redo_stack[-1].lines == ["foo ", "bar "]
+
+        await pilot.press("z")
+        await pilot.pause(0.6)
+        assert len(ti.undo_stack) == 3
+        assert ti.undo_stack[-1].lines == ["fooz "]
+        assert ti.lines == ["fooz "]
+        assert not ti.redo_stack

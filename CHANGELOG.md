@@ -4,16 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Features
+
+-   Undo any input with <kbd>ctrl+z</kbd>; redo with <kbd>ctrl+y</kbd> ([#12](https://github.com/tconbeer/textual-textarea/issues/12)).
+
 ## [0.4.2] - 2023-08-03
+
+### Bug Fixes
 
 -   No longer clears selection for more keystrokes (e.g,. <kbd>ctrl+j</kbd>)
 -   Better-maintains selection and cursor position when bulk commenting or uncommenting with <kbd>ctrl+/</kbd>
 
 ## [0.4.1] - 2023-08-03
 
+### Features
+
 -   Adds a parameter to PathInput to allow <kbd>tab</kbd> to advance the focus.
 
 ## [0.4.0] - 2023-08-03
+
+### Features
 
 -   Adds a suggester to autocomplete paths for the save and open file inputs.
 -   Adds a validator to validate paths for the save and open file inputs.
