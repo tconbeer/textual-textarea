@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 -   Undo any input with <kbd>ctrl+z</kbd>; redo with <kbd>ctrl+y</kbd> ([#12](https://github.com/tconbeer/textual-textarea/issues/12)).
+-   <kbd>shift+delete</kbd> now deletes the current line if there is no selection ([#77](https://github.com/tconbeer/textual-textarea/issues/77)). 
 
 ## [0.4.2] - 2023-08-03
 

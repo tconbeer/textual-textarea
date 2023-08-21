@@ -183,7 +183,7 @@ class TextInput(Static, can_focus=True):
 
         # set selection_anchor if it's unset
         if event.key == "shift+delete":
-            pass  # todo: shift+delete should delete the whole line
+            self.selection_anchor = None
         elif event.key == "shift+tab":
             pass
         elif event.key in (
@@ -401,6 +401,22 @@ class TextInput(Static, can_focus=True):
                 anchor = selection_before
                 cursor = self.cursor
             self._delete_selection(anchor, cursor)
+        elif event.key == "shift+delete":
+            event.stop()
+            if selection_before is None:
+                # delete whole line
+                cursor_before = self.cursor
+                if self.cursor.lno == len(self.lines) - 1:
+                    self.cursor = Cursor(lno=self.cursor.lno - 1, pos=0)
+                else:
+                    self.cursor = Cursor(lno=self.cursor.lno, pos=0)
+                self.lines = (
+                    self.lines[0 : cursor_before.lno]
+                    + self.lines[cursor_before.lno + 1 :]
+                )
+            else:
+                # delete selection, same as plain delete
+                self._delete_selection(selection_before, self.cursor)
         elif event.key == "backspace":
             event.stop()
             if selection_before is None:
