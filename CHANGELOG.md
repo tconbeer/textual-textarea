@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   Fixes a crash caused by <kbd>shift+delete</kbd> on a buffer with only one line.
+
 ## [0.5.0] - 2023-08-22
 
 ### Features
