@@ -126,6 +126,15 @@ from textual_textarea.key_handlers import Cursor
             None,
             Cursor(2, 0),
         ),
+        (
+            ["shift+delete"],
+            ["foo "],
+            None,
+            Cursor(3, 1),
+            [" "],
+            None,
+            Cursor(0, 0),
+        ),
     ],
 )
 @pytest.mark.asyncio

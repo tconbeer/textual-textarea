@@ -406,14 +406,18 @@ class TextInput(Static, can_focus=True):
             if selection_before is None:
                 # delete whole line
                 cursor_before = self.cursor
-                if self.cursor.lno == len(self.lines) - 1:
-                    self.cursor = Cursor(lno=self.cursor.lno - 1, pos=0)
+                if len(self.lines) > 1:
+                    if self.cursor.lno == len(self.lines) - 1:
+                        self.cursor = Cursor(lno=self.cursor.lno - 1, pos=0)
+                    else:
+                        self.cursor = Cursor(lno=self.cursor.lno, pos=0)
+                    self.lines = (
+                        self.lines[0 : cursor_before.lno]
+                        + self.lines[cursor_before.lno + 1 :]
+                    )
                 else:
-                    self.cursor = Cursor(lno=self.cursor.lno, pos=0)
-                self.lines = (
-                    self.lines[0 : cursor_before.lno]
-                    + self.lines[cursor_before.lno + 1 :]
-                )
+                    self.lines = [" "]
+                    self.cursor = Cursor(0, 0)
             else:
                 # delete selection, same as plain delete
                 self._delete_selection(selection_before, self.cursor)
