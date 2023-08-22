@@ -1,6 +1,8 @@
+from collections import deque
+from dataclasses import dataclass
 from math import ceil, floor
 from os.path import expanduser
-from typing import List, Tuple, Union
+from typing import Deque, List, Tuple, Union
 
 import pyperclip
 from rich.console import RenderableType
@@ -29,6 +31,14 @@ BRACKETS = {
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 TAB_SIZE = 4
+UNDO_SIZE = 25
+
+
+@dataclass
+class InputState:
+    lines: List[str]
+    cursor: Cursor
+    selection_anchor: Union[Cursor, None]
 
 
 class TextInput(Static, can_focus=True):
@@ -45,7 +55,6 @@ class TextInput(Static, can_focus=True):
     selection_anchor: reactive[Union[Cursor, None]] = reactive(None)
     clipboard: List[str] = list()
     cursor_visible: reactive[bool] = reactive(True)
-    use_system_clipboard: bool = True
     language: reactive[Union[str, None]] = reactive(None)
 
     def __init__(
@@ -60,23 +69,36 @@ class TextInput(Static, can_focus=True):
         self.language = language
         self.theme = theme
         self.use_system_clipboard = use_system_clipboard
+        self.undo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
+        self.redo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
 
     def on_mount(self) -> None:
         self.blink_timer = self.set_interval(
-            0.5,
-            self._toggle_cursor,
+            interval=0.5,
+            callback=self._toggle_cursor,
+            name="blink_timer",
             pause=not self.has_focus,
         )
+        self.undo_timer = self.set_interval(
+            interval=0.3,
+            callback=self._create_undo_snapshot,
+            name="undo_timer",
+            pause=not self.has_focus,
+        )
+        self._create_undo_snapshot()
 
     def on_focus(self) -> None:
         self.cursor_visible = True
         self.blink_timer.reset()
+        self.undo_timer.reset()
         self._scroll_to_cursor()
         self.update(self._content)
 
     def on_blur(self) -> None:
         self.blink_timer.pause()
         self.cursor_visible = False
+        self.undo_timer.pause()
+        self._create_undo_snapshot()
         self.update(self._content)
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
@@ -86,6 +108,7 @@ class TextInput(Static, can_focus=True):
         event.stop()
         self.cursor_visible = True
         self.blink_timer.reset()
+        self.undo_timer.reset()
         self.selection_anchor = Cursor.from_mouse_event(event)
         self.move_cursor(event.x - 1, event.y)
         self.focus()
@@ -96,6 +119,9 @@ class TextInput(Static, can_focus=True):
         is moving.
         """
         if event.button == 1:
+            self.cursor_visible = True
+            self.blink_timer.reset()
+            self.undo_timer.reset()
             self.move_cursor(event.x - 1, event.y)
 
     def on_mouse_up(self, event: events.MouseUp) -> None:
@@ -105,11 +131,13 @@ class TextInput(Static, can_focus=True):
         event.stop()
         self.cursor_visible = True
         self.blink_timer.reset()
+        self.undo_timer.reset()
         if self.selection_anchor == Cursor.from_mouse_event(event):
             # simple click
             self.selection_anchor = None
         else:
             self.move_cursor(event.x - 1, event.y)
+        self._create_undo_snapshot()
         self.focus()
 
     def on_click(self, event: events.Click) -> None:
@@ -129,6 +157,8 @@ class TextInput(Static, can_focus=True):
         event.stop()
         self.cursor_visible = True
         self.blink_timer.reset()
+        self.undo_timer.reset()
+        self._create_undo_snapshot()
         self._insert_clipboard_at_selection(self.selection_anchor, self.cursor)
         self.selection_anchor = None
         self.update(self._content)
@@ -136,7 +166,20 @@ class TextInput(Static, can_focus=True):
     def on_key(self, event: events.Key) -> None:
         self.cursor_visible = True
         self.blink_timer.reset()
+        self.undo_timer.reset()
         selection_before = self.selection_anchor
+
+        # for large actions, take an undo snapshot first.
+        if event.key in (
+            "ctrl+underscore",
+            "ctrl+v",
+            "ctrl+u",
+            "ctrl+x",
+            "ctrl+z",
+            "tab",
+            "shift+tab",
+        ):
+            self._create_undo_snapshot()
 
         # set selection_anchor if it's unset
         if event.key == "shift+delete":
@@ -152,6 +195,8 @@ class TextInput(Static, can_focus=True):
             "ctrl+enter",
             "ctrl+j",
             "ctrl+e",
+            "ctrl+y",
+            "ctrl+z",
             "f1",
             "f2",
             "f3",
@@ -365,6 +410,25 @@ class TextInput(Static, can_focus=True):
                 anchor = selection_before
                 cursor = self.cursor
             self._delete_selection(anchor, cursor)
+        elif event.key == "ctrl+z":
+            event.stop()
+            if len(self.undo_stack) > 1:
+                # we just took a snapshot, so the current state is
+                # on the stack.
+                current_state = self.undo_stack.pop()
+                self.redo_stack.append(current_state)
+                prev_state = self.undo_stack[-1]
+                self.lines = prev_state.lines.copy()
+                self.cursor = prev_state.cursor
+                self.selection_anchor = prev_state.selection_anchor
+        elif event.key == "ctrl+y":
+            event.stop()
+            if self.redo_stack:
+                state = self.redo_stack.pop()
+                self.undo_stack.append(state)
+                self.lines = state.lines.copy()
+                self.cursor = state.cursor
+                self.selection_anchor = state.selection_anchor
 
         elif event.is_printable:
             event.stop()
@@ -423,6 +487,18 @@ class TextInput(Static, can_focus=True):
     def _toggle_cursor(self) -> None:
         self.cursor_visible = not self.cursor_visible
         self.update(self._content)
+
+    def _create_undo_snapshot(self) -> None:
+        new_snapshot = InputState(
+            lines=self.lines.copy(),
+            cursor=self.cursor,
+            selection_anchor=self.selection_anchor,
+        )
+        if self.undo_stack and self.undo_stack[-1] == new_snapshot:
+            return
+        self.undo_stack.append(new_snapshot)
+        if self.redo_stack:
+            self.redo_stack = deque(maxlen=UNDO_SIZE)
 
     def _get_selected_lines(
         self,
