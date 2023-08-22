@@ -15,6 +15,7 @@ repos:
         additional_dependencies:
           - textual>=0.27.0
           - pytest
+          - hypothesis
         args:
           - "--disallow-untyped-calls"
           - "--disallow-untyped-defs"
