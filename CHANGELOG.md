@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-08-22
+
 ### Features
 
 -   Undo any input with <kbd>ctrl+z</kbd>; redo with <kbd>ctrl+y</kbd> ([#12](https://github.com/tconbeer/textual-textarea/issues/12)).
@@ -109,7 +111,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.0...HEAD
+
+[0.5.0]: https://github.com/tconbeer/textual-textarea/compare/0.4.2...0.5.0
 
 [0.4.2]: https://github.com/tconbeer/textual-textarea/compare/0.4.1...0.4.2
 
