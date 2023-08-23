@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   TextArea now uses the highlight color from the Pygments Style to highlight selected text.
+
 ## [0.5.1] - 2023-08-23
 
 ### Bug Fixes

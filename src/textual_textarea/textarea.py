@@ -472,7 +472,7 @@ class TextInput(Static, can_focus=True):
     def _content(self) -> RenderableType:
         syntax = Syntax(
             "\n".join(self.lines),
-            lexer=self.language,
+            lexer=self.language,  # type: ignore
             theme=self.theme,
         )
         if self.cursor_visible:

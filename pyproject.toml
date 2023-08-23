@@ -26,6 +26,7 @@ textual = {version="0.27.0", extras=["dev"]}
 black = "^23.3.0"
 ruff = ">=0.0.264,<0.0.286"
 mypy = "^1.2.0"
+types-pygments = "^2.16.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
