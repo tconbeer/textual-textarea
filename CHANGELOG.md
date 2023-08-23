@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.2] - 2023-08-23
+
 ### Bug Fixes
 
 -   TextArea now uses the highlight color from the Pygments Style to highlight selected text.
@@ -121,7 +123,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.2...HEAD
+
+[0.5.2]: https://github.com/tconbeer/textual-textarea/compare/0.5.1...0.5.2
 
 [0.5.1]: https://github.com/tconbeer/textual-textarea/compare/0.5.0...0.5.1
 
