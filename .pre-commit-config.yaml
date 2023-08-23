@@ -16,6 +16,7 @@ repos:
           - textual>=0.27.0
           - pytest
           - hypothesis
+          - types-pygments
         args:
           - "--disallow-untyped-calls"
           - "--disallow-untyped-defs"

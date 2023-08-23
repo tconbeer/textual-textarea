@@ -14,7 +14,7 @@ class ErrorModal(ModalScreen):
         }
         #error_modal__outer {
             border: round $error;
-            background: $surface;
+            background: $background;
             margin: 5 10;
             padding: 1 2;
             max-width: 88;
@@ -28,7 +28,7 @@ class ErrorModal(ModalScreen):
         }
 
         #error_modal__inner {
-            border: round $panel-lighten-1;
+            border: round $background;
             padding: 1 1 1 2;
         }
 
