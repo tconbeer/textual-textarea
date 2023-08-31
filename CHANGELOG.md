@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   Undo is smarter about cursor positions and selections; it no longer saves a new checkpoint for every cursor position. ([#86](https://github.com/tconbeer/textual-textarea/issues/86)).
+
 ## [0.5.2] - 2023-08-23
 
 ### Bug Fixes
