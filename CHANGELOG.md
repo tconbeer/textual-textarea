@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+-   <kbd>up</kbd>, <kbd>down</kbd>, <kbd>pageup</kbd>, and <kbd>pagedown</kbd> now better maintain the cursor's x-position when starting with an x-position that is longer than adjacent lines ([#94](https://github.com/tconbeer/textual-textarea/issues/94)).
+
 ## [0.5.3] - 2023-09-01
 
 ### Bug Fixes

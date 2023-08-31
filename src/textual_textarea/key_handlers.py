@@ -1,5 +1,5 @@
 import re
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Union
 
 from textual import log
 from textual.events import MouseEvent
@@ -10,6 +10,7 @@ WWB = re.compile(r"\W*\w+\b")
 class Cursor(NamedTuple):
     lno: int
     pos: int
+    pref_pos: Union[int, None] = None
 
     @classmethod
     def from_mouse_event(cls, event: MouseEvent) -> "Cursor":
@@ -64,15 +65,29 @@ def _handle_down(lines: List[str], cursor: Cursor) -> Cursor:
         return Cursor(lno=max_y, pos=len(lines[cursor.lno]) - 1)
     else:
         max_x = len(lines[cursor.lno + 1]) - 1
-        return Cursor(lno=cursor.lno + 1, pos=min(max_x, cursor.pos))
+        pos = cursor.pref_pos if cursor.pref_pos is not None else cursor.pos
+        return Cursor(
+            lno=cursor.lno + 1,
+            pos=min(max_x, pos),
+            pref_pos=pos if pos > max_x else None,
+        )
 
 
 def _handle_up(lines: List[str], cursor: Cursor) -> Cursor:
     if cursor.lno == 0:
-        return Cursor(0, 0)
+        return Cursor(
+            0,
+            0,
+            pref_pos=cursor.pref_pos if cursor.pref_pos is not None else cursor.pos,
+        )
     else:
         max_x = len(lines[cursor.lno - 1]) - 1
-        return Cursor(lno=cursor.lno - 1, pos=min(max_x, cursor.pos))
+        pos = cursor.pref_pos if cursor.pref_pos is not None else cursor.pos
+        return Cursor(
+            lno=cursor.lno - 1,
+            pos=min(max_x, pos),
+            pref_pos=pos if pos > max_x else None,
+        )
 
 
 def _handle_ctrl_right(lines: List[str], cursor: Cursor) -> Cursor:
