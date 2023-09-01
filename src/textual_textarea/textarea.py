@@ -251,12 +251,20 @@ class TextInput(Static, can_focus=True):
         elif event.key in ("pageup", "shift+pageup"):
             event.stop()
             self.move_cursor(
-                x=self.cursor.pos, y=(self.cursor.lno - self._visible_height() + 1)
+                x=self.cursor.pref_pos
+                if self.cursor.pref_pos is not None
+                else self.cursor.pos,
+                y=(self.cursor.lno - self._visible_height() + 1),
+                set_pref=True,
             )
         elif event.key in ("pagedown", "shift+pagedown"):
             event.stop()
             self.move_cursor(
-                x=self.cursor.pos, y=(self.cursor.lno + self._visible_height() - 1)
+                x=self.cursor.pref_pos
+                if self.cursor.pref_pos is not None
+                else self.cursor.pos,
+                y=(self.cursor.lno + self._visible_height() - 1),
+                set_pref=True,
             )
         elif event.key in ("ctrl+up", "ctrl+down"):
             event.stop()
@@ -680,20 +688,22 @@ class TextInput(Static, can_focus=True):
         else:
             return self.lines[cursor.lno][cursor.pos - 1]
 
-    def move_cursor(self, x: int, y: int) -> None:
-        self.cursor = self._get_valid_cursor(x, y)
+    def move_cursor(self, x: int, y: int, set_pref: bool = False) -> None:
+        self.cursor = self._get_valid_cursor(x, y, set_pref=set_pref)
         self.update(self._content)
 
     def move_selection_anchor(self, x: int, y: int) -> None:
         self.selection_anchor = self._get_valid_cursor(x, y)
         self.update(self._content)
 
-    def _get_valid_cursor(self, x: int, y: int) -> Cursor:
+    def _get_valid_cursor(self, x: int, y: int, set_pref: bool = False) -> Cursor:
         max_y = len(self.lines) - 1
         safe_y = max(0, min(max_y, y))
         max_x = len(self.lines[safe_y]) - 1
         safe_x = max(0, min(max_x, x))
-        return Cursor(lno=safe_y, pos=safe_x)
+        return Cursor(
+            lno=safe_y, pos=safe_x, pref_pos=x if set_pref and x > safe_x else None
+        )
 
     def clear_selection_anchor(self) -> None:
         self.selection_anchor = None
