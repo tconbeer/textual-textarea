@@ -69,6 +69,18 @@ ta = self.query_one(TextArea)
 selection = ta.selected_text
 ```
 
+#### Inserting Text
+
+You can insert text at the current selection:
+```python
+ta = self.query_one(TextArea)
+ta.text = "01234"
+ta.cursor = (0, 2)
+ta.insert_text_at_selection("\nabc\n")
+assert ta.text == "01\nabc\n234"
+assert ta.cursor == Cursor(lno=2, pos=0)
+```
+
 #### Getting and Setting The Cursor Position
 
 The TextArea exposes a `cursor` property that returns a NamedTuple with the position of the cursor. The tuple is (line_number, x_pos):

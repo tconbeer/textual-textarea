@@ -358,3 +358,47 @@ async def test_undo_redo(app: App) -> None:
         assert ti.undo_stack[-1].lines == ["fooz "]
         assert ti.lines == ["fooz "]
         assert not ti.redo_stack
+
+
+@pytest.mark.parametrize(
+    "start_text,insert_text,cursor,selection,expected_text",
+    [
+        (
+            "select ",
+            '"main"."drivers"."driverId"',
+            Cursor(0, 7),
+            None,
+            'select "main"."drivers"."driverId"',
+        ),
+        (
+            "select , foo",
+            '"main"."drivers"."driverId"',
+            Cursor(0, 7),
+            None,
+            'select "main"."drivers"."driverId", foo',
+        ),
+        ("aaa\naaa\naaa\naaa", "bb", Cursor(2, 2), None, "aaa\naaa\naabba\naaa"),
+        ("aaa\naaa\naaa\naaa", "bb", Cursor(2, 2), Cursor(1, 1), "aaa\nabba\naaa"),
+        ("01234", "\nabc\n", Cursor(lno=0, pos=2), None, "01\nabc\n234"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_insert_text(
+    app: App,
+    start_text: str,
+    insert_text: str,
+    cursor: Cursor,
+    selection: Union[Cursor, None],
+    expected_text: str,
+) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_one(TextArea)
+        ta.text = start_text
+        ta.cursor = cursor
+        ta.selection_anchor = selection
+        await pilot.pause()
+
+        ta.insert_text_at_selection(insert_text)
+        await pilot.pause()
+
+        assert ta.text == expected_text
