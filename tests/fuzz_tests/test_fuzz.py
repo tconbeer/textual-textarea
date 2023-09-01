@@ -46,6 +46,7 @@ KEYS = [
 ]
 
 
+@pytest.mark.skip(reason="Hypothesis often hangs in async; deadline doesn't work.")
 @given(keys=lists(sampled_from(KEYS), min_size=5, max_size=10))
 @settings(deadline=1000, max_examples=10, verbosity=Verbosity.verbose)
 @pytest.mark.asyncio
