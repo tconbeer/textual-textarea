@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.4] - 2023-09-01
+
 ### Bug Fixes
 
 -   <kbd>up</kbd>, <kbd>down</kbd>, <kbd>pageup</kbd>, and <kbd>pagedown</kbd> now better maintain the cursor's x-position when starting with an x-position that is longer than adjacent lines ([#94](https://github.com/tconbeer/textual-textarea/issues/94)).
@@ -135,7 +137,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.3...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.4...HEAD
+
+[0.5.4]: https://github.com/tconbeer/textual-textarea/compare/0.5.3...0.5.4
 
 [0.5.3]: https://github.com/tconbeer/textual-textarea/compare/0.5.2...0.5.3
 
