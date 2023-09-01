@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.3] - 2023-09-01
+
 ### Bug Fixes
 
 -   Undo is smarter about cursor positions and selections; it no longer saves a new checkpoint for every cursor position. ([#86](https://github.com/tconbeer/textual-textarea/issues/86)).
@@ -129,7 +131,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.2...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.3...HEAD
+
+[0.5.3]: https://github.com/tconbeer/textual-textarea/compare/0.5.2...0.5.3
 
 [0.5.2]: https://github.com/tconbeer/textual-textarea/compare/0.5.1...0.5.2
 
