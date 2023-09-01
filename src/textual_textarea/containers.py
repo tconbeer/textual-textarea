@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Any, Union
 
 from textual.containers import Container, ScrollableContainer
 from textual.widget import Widget
@@ -18,6 +18,11 @@ class TextContainer(
             width: 100%
         }
     """
+
+    def scroll_to(
+        self, x: Union[float, None] = None, y: Union[float, None] = None, **_: Any
+    ) -> None:
+        return super().scroll_to(x, y, animate=True, duration=0.01)
 
 
 class FooterContainer(

@@ -46,6 +46,8 @@ class TextInput(Static, can_focus=True):
         TextInput {
             height: auto;
             width: auto;
+            min-height: 100%;
+            min-width: 100%;
             padding: 0 1;
         }
     """
