@@ -462,6 +462,28 @@ class TextInput(Static, can_focus=True):
 
         self.update(self._content)
 
+        # if the cursor just moved, we want to replace the last snapshot with one with
+        # the new cursor position.
+        if (
+            any(
+                [
+                    dir in event.key
+                    for dir in [
+                        "left",
+                        "right",
+                        "up",
+                        "down",
+                        "pageup",
+                        "pagedown",
+                        "home",
+                        "end",
+                    ]
+                ]
+            )
+            or event.key == "ctrl+a"
+        ):
+            self._create_undo_snapshot()
+
     def watch_cursor(self) -> None:
         self._scroll_to_cursor()
 
@@ -516,9 +538,13 @@ class TextInput(Static, can_focus=True):
         )
         if self.undo_stack and self.undo_stack[-1] == new_snapshot:
             return
-        self.undo_stack.append(new_snapshot)
-        if self.redo_stack:
-            self.redo_stack = deque(maxlen=UNDO_SIZE)
+        elif self.undo_stack and self.undo_stack[-1].lines == new_snapshot.lines:
+            # just update the cursor
+            self.undo_stack[-1] = new_snapshot
+        else:
+            self.undo_stack.append(new_snapshot)
+            if self.redo_stack:
+                self.redo_stack = deque(maxlen=UNDO_SIZE)
 
     def _get_selected_lines(
         self,
