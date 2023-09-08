@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.0] - 2023-09-08
+
 ### Features
 
 -   Adds a new public method, `TextArea.insert_text_at_selection(text)`.
@@ -141,7 +143,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.5.4...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.6.0...HEAD
+
+[0.6.0]: https://github.com/tconbeer/textual-textarea/compare/0.5.4...0.6.0
 
 [0.5.4]: https://github.com/tconbeer/textual-textarea/compare/0.5.3...0.5.4
 
