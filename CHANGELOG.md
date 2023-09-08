@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Features
+
+-   Adds a new public method, `TextArea.insert_text_at_selection(text)`.
+
 ## [0.5.4] - 2023-09-01
 
 ### Bug Fixes

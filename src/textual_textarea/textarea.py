@@ -664,13 +664,20 @@ class TextInput(Static, can_focus=True):
                 pass
             else:
                 self.clipboard = deserialize_lines(sys_clipboard, trim=True)
+        self.insert_lines_at_selection(
+            anchor=anchor, cursor=cursor, lines=self.clipboard
+        )
+
+    def insert_lines_at_selection(
+        self, anchor: Union[Cursor, None], cursor: Cursor, lines: List[str]
+    ) -> None:
         if anchor:
             self._delete_selection(anchor, cursor)
             cursor = self.cursor
         head = self.lines[cursor.lno][: cursor.pos]
         tail = self.lines[cursor.lno][cursor.pos :]
-        if (clip_len := len(self.clipboard)) != 0:
-            new_lines = self.clipboard.copy()
+        if (clip_len := len(lines)) != 0:
+            new_lines = lines.copy()
             new_lines[0] = f"{head}{new_lines[0]}"
             new_lines[-1] = f"{new_lines[-1]}{tail}"
             self.lines[cursor.lno : cursor.lno + 1] = new_lines
@@ -854,6 +861,19 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             langage (str | None): The Pygments short name for the new language
         """
         self.text_input.language = language
+
+    def insert_text_at_selection(self, text: str) -> None:
+        """
+        Inserts text at the current cursor position; if there is a selection anchor,
+        first deletes the current selection.
+
+        Args:
+            text (str): The text to be inserted.
+        """
+        lines = deserialize_lines(text=text, trim=True)
+        self.text_input.insert_lines_at_selection(
+            anchor=self.selection_anchor, cursor=self.cursor, lines=lines
+        )
 
     def compose(self) -> ComposeResult:
         with TextContainer():
