@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 -   When using the system clipboard, TextArea now initializes the clipboard on mount, resulting in
     better performance when copying and pasting.
 -   `textual_textarea.key_handlers.Cursor` is now exported from the main `textual_textarea` package.
+-   Cursor position is no longer updated on a right-click.
 
 ## [0.6.0] - 2023-09-08
 

@@ -113,13 +113,14 @@ class TextInput(Static, can_focus=True):
         """
         Moves the anchor and cursor to the click.
         """
-        event.stop()
-        self.cursor_visible = True
-        self.blink_timer.reset()
-        self.undo_timer.reset()
-        self.selection_anchor = Cursor.from_mouse_event(event)
-        self.move_cursor(event.x - 1, event.y)
-        self.focus()
+        if event.button == 1:
+            event.stop()
+            self.cursor_visible = True
+            self.blink_timer.reset()
+            self.undo_timer.reset()
+            self.selection_anchor = Cursor.from_mouse_event(event)
+            self.move_cursor(event.x - 1, event.y)
+            self.focus()
 
     def on_mouse_move(self, event: events.MouseMove) -> None:
         """
@@ -136,23 +137,25 @@ class TextInput(Static, can_focus=True):
         """
         Moves the cursor to the click.
         """
-        event.stop()
-        self.cursor_visible = True
-        self.blink_timer.reset()
-        self.undo_timer.reset()
-        if self.selection_anchor == Cursor.from_mouse_event(event):
-            # simple click
-            self.selection_anchor = None
-        else:
-            self.move_cursor(event.x - 1, event.y)
-        self._create_undo_snapshot()
-        self.focus()
+        if event.button == 1:
+            event.stop()
+            self.cursor_visible = True
+            self.blink_timer.reset()
+            self.undo_timer.reset()
+            if self.selection_anchor == Cursor.from_mouse_event(event):
+                # simple click
+                self.selection_anchor = None
+            else:
+                self.move_cursor(event.x - 1, event.y)
+            self._create_undo_snapshot()
+            self.focus()
 
     def on_click(self, event: events.Click) -> None:
         """
         Click duplicates MouseUp and MouseDown, so we just capture and kill this event.
         """
-        event.stop()
+        if event.button == 1:
+            event.stop()
 
     def on_paste(self, event: events.Paste) -> None:
         """
