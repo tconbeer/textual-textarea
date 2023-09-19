@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Features
+
+-   TextArea now posts a `TextAreaClipboardError` message if it cannot access the system clipboard.
+
+### Fixes
+
+-   TextArea now uses the contents of the system Paste message, instead of relying exclusively on the
+    system clipboard. This should improve compatibility when Harlequin's host does not share its
+    clipboard with the user's native system.
+-   When using the system clipboard, TextArea now initializes the clipboard on mount, resulting in
+    better performance when copying and pasting.
+-   `textual_textarea.key_handlers.Cursor` is now exported from the main `textual_textarea` package.
+
 ## [0.6.0] - 2023-09-08
 
 ### Features

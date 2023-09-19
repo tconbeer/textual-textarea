@@ -20,7 +20,11 @@ from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor, handle_arrow
-from textual_textarea.messages import TextAreaCursorMoved, TextAreaScrollOne
+from textual_textarea.messages import (
+    TextAreaClipboardError,
+    TextAreaCursorMoved,
+    TextAreaScrollOne,
+)
 from textual_textarea.path_input import PathInput
 from textual_textarea.serde import deserialize_lines, serialize_lines
 
@@ -87,6 +91,8 @@ class TextInput(Static, can_focus=True):
             name="undo_timer",
             pause=not self.has_focus,
         )
+        if self.use_system_clipboard:
+            self.system_copy, self.system_paste = pyperclip.determine_clipboard()
         self._create_undo_snapshot()
 
     def on_focus(self) -> None:
@@ -161,7 +167,9 @@ class TextInput(Static, can_focus=True):
         self.blink_timer.reset()
         self.undo_timer.reset()
         self._create_undo_snapshot()
-        self._insert_clipboard_at_selection(self.selection_anchor, self.cursor)
+        self._insert_clipboard_at_selection(
+            self.selection_anchor, self.cursor, paste_message=event.text
+        )
         self.selection_anchor = None
         self.update(self._content)
 
@@ -342,10 +350,10 @@ class TextInput(Static, can_focus=True):
             self.clipboard = lines.copy()
             if self.use_system_clipboard:
                 try:
-                    pyperclip.copy(serialize_lines(self.clipboard))
+                    self.system_copy(serialize_lines(self.clipboard))
                 except pyperclip.PyperclipException:
                     # no system clipboard; common in CI runners
-                    pass
+                    self.post_message(TextAreaClipboardError(action="copy"))
             self.log(f"copied to clipboard: {self.clipboard}")
             if event.key == "ctrl+x":
                 self._delete_selection(first, last)
@@ -654,14 +662,20 @@ class TextInput(Static, can_focus=True):
         )
 
     def _insert_clipboard_at_selection(
-        self, anchor: Union[Cursor, None], cursor: Cursor
+        self,
+        anchor: Union[Cursor, None],
+        cursor: Cursor,
+        paste_message: Union[str, None] = None,
     ) -> None:
-        if self.use_system_clipboard:
+        if paste_message is not None:
+            self.clipboard = deserialize_lines(paste_message, trim=True)
+        elif self.use_system_clipboard:
             try:
-                sys_clipboard = pyperclip.paste()
+                sys_clipboard = self.system_paste()
             except pyperclip.PyperclipException:
-                # no system clipboard; common in CI runners
-                pass
+                # no system clipboard; common in CI runners. Use internal
+                # clipboard state of self.clipboard
+                self.post_message(TextAreaClipboardError(action="paste"))
             else:
                 self.clipboard = deserialize_lines(sys_clipboard, trim=True)
         self.insert_lines_at_selection(
