@@ -24,3 +24,13 @@ class TextAreaScrollOne(Message, bubble=True):
         super().__init__()
         assert direction in ("up", "down")
         self.direction = direction
+
+
+class TextAreaClipboardError(Message, bubble=True):
+    """
+    Posted when textarea cannot access the system clipboard
+    """
+
+    def __init__(self, action: str) -> None:
+        super().__init__()
+        self.action = action
