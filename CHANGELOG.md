@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2023-09-20
+
 ### Features
 
 -   TextArea now posts a `TextAreaClipboardError` message if it cannot access the system clipboard.
@@ -157,7 +159,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.7.0...HEAD
+
+[0.7.0]: https://github.com/tconbeer/textual-textarea/compare/0.6.0...0.7.0
 
 [0.6.0]: https://github.com/tconbeer/textual-textarea/compare/0.5.4...0.6.0
 
