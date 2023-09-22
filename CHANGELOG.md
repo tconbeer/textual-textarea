@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.1] - 2023-09-22
+
 -   TextArea now posts a `TextAreaSaved` message if it successfully saves a file.
 
 ## [0.7.0] - 2023-09-20
@@ -161,7 +163,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.7.1...HEAD
+
+[0.7.1]: https://github.com/tconbeer/textual-textarea/compare/0.7.0...0.7.1
 
 [0.7.0]: https://github.com/tconbeer/textual-textarea/compare/0.6.0...0.7.0
 
