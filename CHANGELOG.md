@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   TextArea now posts a `TextAreaSaved` message if it successfully saves a file.
+
 ## [0.7.0] - 2023-09-20
 
 ### Features

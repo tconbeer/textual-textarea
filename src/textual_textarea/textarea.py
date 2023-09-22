@@ -23,6 +23,7 @@ from textual_textarea.key_handlers import Cursor, handle_arrow
 from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaCursorMoved,
+    TextAreaSaved,
     TextAreaScrollOne,
 )
 from textual_textarea.path_input import PathInput
@@ -1018,6 +1019,8 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
                         error=e,
                     )
                 )
+            else:
+                self.post_message(TextAreaSaved(path=expanded_path))
         elif message.input.id == "textarea__open_input":
             try:
                 with open(expanded_path, "r") as f:
