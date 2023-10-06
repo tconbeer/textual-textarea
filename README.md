@@ -1,6 +1,12 @@
 # Textual Textarea
 ![Textual Textarea Screenshot](textarea.png)
 
+## Note: This is **NOT** the official TextArea widget!
+
+With v0.38.0, Textual added a built-in TextArea widget. You probably want to use 
+that widget instead of this one. In a future version, this widget will be refactored
+to use the official widget (and likely add some features and change some key bindings).
+
 ## Installation
 
 ```

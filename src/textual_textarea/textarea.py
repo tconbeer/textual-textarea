@@ -549,7 +549,10 @@ class TextInput(Static, can_focus=True):
         return parent.window_region.height
 
     def _toggle_cursor(self) -> None:
-        self.cursor_visible = not self.cursor_visible
+        if self.app.is_headless:
+            self.cursor_visible = True
+        else:
+            self.cursor_visible = not self.cursor_visible
         self.update(self._content)
 
     def _create_undo_snapshot(self) -> None:
