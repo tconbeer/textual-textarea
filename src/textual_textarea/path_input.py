@@ -109,3 +109,10 @@ class PathInput(Input):
             self.action_cursor_right()
         elif self.tab_advances_focus:
             self.app.action_focus_next()
+
+    def _toggle_cursor(self) -> None:
+        """Toggle visibility of cursor."""
+        if self.app.is_headless:
+            self._cursor_visible = True
+        else:
+            self._cursor_visible = not self._cursor_visible
