@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7.3] - 2023-10-06
 
+-   The PathInput cursor no longer blinks if the app is run in headless mode (during tests). This only matters to prevent
+    flaky tests for snapshot testing this widget and downstream apps.
+
 ## [0.7.2] - 2023-10-06
 
 -   The TextArea cursor no longer blinks if the app is run in headless mode (during tests). This only matters to prevent
