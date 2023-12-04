@@ -1,8 +1,9 @@
 from typing import Type, Union
 
 import pytest
-from textual.app import App, ComposeResult, CSSPathType
+from textual.app import App, ComposeResult
 from textual.driver import Driver
+from textual.types import CSSPathType
 from textual_textarea.textarea import TextArea
 
 
