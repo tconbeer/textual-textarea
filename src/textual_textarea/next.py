@@ -1,0 +1,810 @@
+from __future__ import annotations
+
+import re
+from collections import deque
+from dataclasses import dataclass
+from math import ceil, floor
+from os.path import expanduser
+from typing import Deque, List, Literal, Tuple, Union
+
+import pyperclip
+from textual import events
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.events import Paste
+from textual.widget import Widget
+from textual.widgets import Input, Label
+from textual.widgets import TextArea as _TextArea
+from textual.widgets.text_area import Location, Selection
+
+from textual_textarea.colors import WidgetColors
+from textual_textarea.comments import INLINE_MARKERS
+from textual_textarea.containers import FooterContainer, TextContainer
+from textual_textarea.error_modal import ErrorModal
+from textual_textarea.key_handlers import Cursor
+from textual_textarea.messages import (
+    TextAreaClipboardError,
+    TextAreaSaved,
+    TextAreaScrollOne,
+)
+from textual_textarea.path_input import PathInput
+
+BRACKETS = {
+    "(": ")",
+    "[": "]",
+    "{": "}",
+}
+CLOSERS = {'"': '"', "'": "'", **BRACKETS}
+UNDO_SIZE = 25
+NON_WORD = re.compile("\W")
+
+
+@dataclass
+class InputState:
+    text: str
+    selection: Selection
+
+    @property
+    def cursor(self) -> Cursor:
+        return Cursor(self.selection.end[0], self.selection.end[1])
+
+    @property
+    def selection_anchor(self) -> Cursor | None:
+        if self.selection.start == self.selection.end:
+            return None
+        else:
+            return Cursor(self.selection.start[0], self.selection.start[1])
+
+    @property
+    def lines(self) -> List[str]:
+        if not self.text:
+            return [" "]
+        else:
+            return [f"{line} " for line in self.text.splitlines(keepends=False)]
+
+
+class TextInput(_TextArea, inherit_bindings=False):
+    BINDINGS = [
+        Binding("escape", "screen.focus_next", "Shift Focus", show=False),
+        # Cursor movement
+        Binding("up", "cursor_up", "cursor up", show=False),
+        Binding("down", "cursor_down", "cursor down", show=False),
+        Binding("left", "cursor_left", "cursor left", show=False),
+        Binding("right", "cursor_right", "cursor right", show=False),
+        Binding("ctrl+left", "cursor_word_left", "cursor word left", show=False),
+        Binding("ctrl+right", "cursor_word_right", "cursor word right", show=False),
+        Binding("home", "cursor_line_start", "cursor line start", show=False),
+        Binding("end", "cursor_line_end", "cursor line end", show=False),
+        Binding("ctrl+home", "cursor_doc_start", "cursor line start", show=False),
+        Binding("ctrl+end", "cursor_doc_end", "cursor line end", show=False),
+        Binding("pageup", "cursor_page_up", "cursor page up", show=False),
+        Binding("pagedown", "cursor_page_down", "cursor page down", show=False),
+        # scrolling
+        Binding("ctrl+up", "scroll_one('up')", "scroll one up", show=False),
+        Binding("ctrl+down", "scroll_one('down')", "scroll one down", show=False),
+        # Making selections (generally holding the shift key and moving cursor)
+        Binding(
+            "ctrl+shift+left",
+            "cursor_word_left(True)",
+            "cursor left word select",
+            show=False,
+        ),
+        Binding(
+            "ctrl+shift+right",
+            "cursor_word_right(True)",
+            "cursor right word select",
+            show=False,
+        ),
+        Binding(
+            "shift+home",
+            "cursor_line_start(True)",
+            "cursor line start select",
+            show=False,
+        ),
+        Binding(
+            "shift+end", "cursor_line_end(True)", "cursor line end select", show=False
+        ),
+        Binding("shift+up", "cursor_up(True)", "cursor up select", show=False),
+        Binding("shift+down", "cursor_down(True)", "cursor down select", show=False),
+        Binding("shift+left", "cursor_left(True)", "cursor left select", show=False),
+        Binding("shift+right", "cursor_right(True)", "cursor right select", show=False),
+        # Binding("f5", "select_word", "select word", show=False),
+        # Binding("f6", "select_line", "select line", show=False),
+        Binding("ctrl+a", "select_all", "select all", show=False),
+        # Editing
+        Binding("ctrl+underscore", "toggle_comment", "toggle comment", show=False),
+        Binding("ctrl+x", "cut", "copy", show=False),
+        Binding("ctrl+c", "copy", "copy", show=False),
+        Binding("ctrl+u,ctrl+v,shift+insert", "paste", "paste", show=False),
+        Binding("ctrl+z", "undo", "undo", show=False),
+        Binding("ctrl+y", "redo", "redo", show=False),
+        # Deletion
+        Binding("backspace", "delete_left", "delete left", show=False),
+        Binding("delete", "delete_right", "delete right", show=False),
+        Binding("shift+delete", "delete_line", "delete line", show=False),
+        # Binding(
+        #     "ctrl+w", "delete_word_left", "delete left to start of word", show=False
+        # ),
+        # Binding(
+        #     "ctrl+f", "delete_word_right", "delete right to start of word", show=False
+        # ),
+        # Binding(
+        #     "ctrl+u", "delete_to_start_of_line", "delete to line start", show=False
+        # ),
+        # Binding("ctrl+k", "delete_to_end_of_line", "delete to line end", show=False),
+    ]
+
+    clipboard: str = ""
+
+    def __init__(
+        self,
+        text: str = "",
+        *,
+        language: str | None = None,
+        theme: str | None = None,
+        use_system_clipboard: bool = True,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ) -> None:
+        # self.cursor_blink = False if self.app.is_headless else True
+        self.use_system_clipboard = use_system_clipboard
+        self.undo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
+        self.redo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
+        super().__init__(
+            text,
+            language=language,
+            theme=theme,
+            name=name,
+            id=id,
+            classes=classes,
+            disabled=disabled,
+        )
+
+    def on_mount(self) -> None:
+        self.undo_timer = self.set_interval(
+            interval=0.3,
+            callback=self._create_undo_snapshot,
+            name="undo_timer",
+            pause=not self.has_focus,
+        )
+        if self.use_system_clipboard:
+            self.system_copy, self.system_paste = pyperclip.determine_clipboard()
+        self._create_undo_snapshot()
+
+    def on_blur(self) -> None:
+        self._create_undo_snapshot()
+        self.undo_timer.pause()
+
+    def on_focus(self) -> None:
+        self.undo_timer.reset()
+
+    def on_key(self, event: events.Key) -> None:
+        self.undo_timer.reset()
+        if event.key in (
+            "apostrophe",
+            "quotation_mark",
+            "left_parenthesis",
+            "left_square_bracket",
+            "left_curly_bracket",
+            "right_parenthesis",
+            "right_square_bracket",
+            "right_curly_bracket",
+        ):
+            event.stop()
+            event.prevent_default()
+            assert event.character is not None
+            if self.selection.start == self.selection.end:
+                self._insert_closed_character_at_cursor(event.character)
+            elif event.key in (
+                "right_parenthesis",
+                "right_square_bracket",
+                "right_curly_bracket",
+            ):
+                self.replace(event.character, *self.selection)
+            else:
+                self._insert_characters_around_selection(event.character)
+        elif event.key == "enter":
+            event.stop()
+            event.prevent_default()
+            nl = self.document.newline
+            first, last = sorted([*self.selection])
+            indent = self._get_indent_level_of_line(index=first[0])
+            self.selection = Selection(start=first, end=first)
+            char_before = self._get_character_before_cursor()
+            if char_before in BRACKETS:
+                if self.indent_type == "tabs":
+                    new_indent = indent + 1
+                    indent_char = "\t"
+                else:
+                    new_indent = (
+                        indent + self.indent_width - (indent % self.indent_width)
+                    )
+                    indent_char = " "
+                self.replace(f"{nl}{indent_char*new_indent}", first, last)
+                char_at = self._get_character_at_cursor()
+                if char_at == BRACKETS[char_before]:
+                    loc = self.selection
+                    self.insert(f"{nl}{indent * indent_char}")
+                    self.selection = loc
+            else:
+                indent_char = "\t" if self.indent_type == "tabs" else " "
+                self.insert(
+                    f"{nl}{indent * indent_char}", location=self.cursor_location
+                )
+        elif event.key == "tab":
+            event.stop()
+            event.prevent_default()
+            first, last = sorted([*self.selection])
+            # in some cases, selections are replaced with indent
+            if first[0] == last[0] and (
+                first[1] == last[1]
+                or first[1] != 0
+                or last[1] != len(self.document.get_line(last[0])) - 1
+            ):
+                indent_char = "\t" if self.indent_type == "tabs" else " "
+                indent_width = 1 if self.indent_type == "tabs" else self.indent_width
+                self.replace(
+                    f"{indent_char*(indent_width - first[1] % indent_width)}",
+                    first,
+                    last,
+                    maintain_selection_offset=False,
+                )
+            # usually, selected lines are prepended with four-ish spaces
+            else:
+                self._indent_selection(kind="indent")
+        elif event.key == "shift+tab":
+            event.stop()
+            event.prevent_default()
+            self._indent_selection(kind="dedent")
+
+    def on_mouse_down(self) -> None:
+        self.undo_timer.reset()
+
+    def on_mouse_move(self) -> None:
+        self.undo_timer.reset()
+
+    def on_mouse_up(self) -> None:
+        self._create_undo_snapshot()
+
+    def on_paste(self, event: Paste) -> None:
+        event.prevent_default()
+        event.stop()
+        self._create_undo_snapshot()
+        self.replace(event.text, *self.selection, maintain_selection_offset=False)
+
+    def watch_language(self, language: str) -> None:
+        self.inline_comment_marker = INLINE_MARKERS.get(language)
+
+    def action_copy(self) -> None:
+        self._copy_selection()
+
+    def action_cut(self) -> None:
+        self._create_undo_snapshot()
+        self._copy_selection()
+        if not self.selected_text:
+            self.action_delete_line()
+        self.delete(*self.selection)
+
+    def action_cursor_doc_start(self) -> None:
+        self.selection = Selection(start=(0, 0), end=(0, 0))
+
+    def action_cursor_doc_end(self) -> None:
+        lno = self.document.line_count - 1
+        loc = (lno, len(self.document.get_line(lno)))
+        self.selection = Selection(start=loc, end=loc)
+
+    def action_delete_line(self) -> None:
+        self._create_undo_snapshot()
+        if self.selection.start != self.cursor_location:  # selection active
+            self.delete(*self.selection, maintain_selection_offset=False)
+        else:
+            line, col = self.cursor_location
+            if self.document.line_count == 1:
+                super().action_delete_line()
+            elif self.cursor_at_last_line:
+                eol = len(self.document[line - 1])
+                self.replace(
+                    "", start=(line - 1, eol), end=self.get_cursor_line_end_location()
+                )
+                self.cursor_location = (line - 1, eol)
+            else:
+                self.delete(start=(line, 0), end=(line + 1, 0))
+                self.cursor_location = (line, 0)
+
+    def action_paste(self) -> None:
+        if self.use_system_clipboard:
+            try:
+                self.clipboard = self.system_paste()
+            except pyperclip.PyperclipException:
+                # no system clipboard; common in CI runners. Use internal
+                # clipboard state of self.clipboard
+                self.post_message(TextAreaClipboardError(action="paste"))
+        if self.clipboard:
+            self.post_message(Paste(self.clipboard))
+
+    def action_scroll_one(self, direction: str = "down") -> None:
+        if direction == "down":
+            self.scroll_relative(y=1, animate=False)
+        elif direction == "up":
+            self.scroll_relative(y=-1, animate=False)
+
+    def action_toggle_comment(self) -> None:
+        if self.inline_comment_marker:
+            lines, first, last = self._get_selected_lines()
+            stripped_lines = [line.lstrip() for line in lines]
+            indents = [len(line) - len(line.lstrip()) for line in lines]
+            # if lines are already commented, remove them
+            if all(
+                [line.startswith(self.inline_comment_marker) for line in stripped_lines]
+            ):
+                offsets = [
+                    2 if line[len(self.inline_comment_marker)].isspace() else 1
+                    for line in stripped_lines
+                ]
+                for lno, indent, offset in zip(
+                    range(first[0], last[0] + 1), indents, offsets
+                ):
+                    self.delete(
+                        start=(lno, indent),
+                        end=(lno, indent + offset),
+                        maintain_selection_offset=True,
+                    )
+            # add comment tokens to all lines
+            else:
+                for lno, indent in zip(range(first[0], last[0] + 1), indents):
+                    self.insert(
+                        f"{self.inline_comment_marker} ",
+                        location=(lno, indent),
+                        maintain_selection_offset=True,
+                    )
+
+    def action_undo(self) -> None:
+        self._create_undo_snapshot()
+        if len(self.undo_stack) > 1:
+            # we just took a snapshot, so the current state is
+            # on the stack.
+            current_state = self.undo_stack.pop()
+            self.redo_stack.append(current_state)
+            prev_state = self.undo_stack[-1]
+            self.text = prev_state.text
+            self.selection = prev_state.selection
+
+    def action_redo(self) -> None:
+        if self.redo_stack:
+            state = self.redo_stack.pop()
+            self.undo_stack.append(state)
+            self.text = state.text
+            self.selection = state.selection
+
+    def _copy_selection(self) -> None:
+        if self.selected_text:
+            self.clipboard = self.selected_text
+        else:
+            whole_line = self.get_text_range(
+                self.get_cursor_line_start_location(),
+                self.get_cursor_line_end_location(),
+            )
+            self.clipboard = f"{whole_line}{self.document.newline}"
+        if self.use_system_clipboard:
+            try:
+                self.system_copy(self.clipboard)
+            except pyperclip.PyperclipException:
+                # no system clipboard; common in CI runners
+                self.post_message(TextAreaClipboardError(action="copy"))
+
+    def _create_undo_snapshot(self) -> None:
+        self.undo_timer.reset()
+        new_snapshot = InputState(
+            text=self.text,
+            selection=self.selection,
+        )
+        if self.undo_stack and self.undo_stack[-1] == new_snapshot:
+            return
+        elif self.undo_stack and self.undo_stack[-1].text == new_snapshot.text:
+            # overwrite the last checkpoint to just update the cursor
+            self.undo_stack[-1] = new_snapshot
+        else:
+            self.undo_stack.append(new_snapshot)
+            if self.redo_stack:
+                self.redo_stack = deque(maxlen=UNDO_SIZE)
+
+    def _get_character_at_cursor(self) -> str:
+        return self.get_text_range(
+            start=self.cursor_location, end=self.get_cursor_right_location()
+        )
+
+    def _get_character_before_cursor(self) -> str:
+        return self.get_text_range(
+            start=self.get_cursor_left_location(), end=self.cursor_location
+        )
+
+    def _indent_selection(self, kind: Literal["indent", "dedent"]) -> None:
+        rounder, offset = (ceil, -1) if kind == "dedent" else (floor, 1)
+
+        original_selection = self.selection
+        lines, first, last = self._get_selected_lines()
+
+        indent_width = 1 if self.indent_type == "tabs" else self.indent_width
+        indent_char = "\t" if self.indent_type == "tabs" else " " * self.indent_width
+        raw_indents = [
+            self._get_indent_level_of_line(lno) for lno in range(first[0], last[0] + 1)
+        ]
+        tab_stops = [rounder(space / indent_width) for space in raw_indents]
+
+        new_lines = [
+            f"{indent_char * max(0, indent+offset)}{line.lstrip()}"
+            for line, indent in zip(lines, tab_stops)
+        ]
+        self.replace(
+            self.document.newline.join(new_lines),
+            start=(first[0], 0),
+            end=(last[0], len(self.document.get_line(last[0]))),
+        )
+
+        change_at_start = (
+            0
+            if original_selection.start[1] == 0
+            else len(new_lines[original_selection.start[0] - first[0]])
+            - len(lines[original_selection.start[0] - first[0]])
+        )
+        change_at_cursor = (
+            0
+            if original_selection.end[1] == 0
+            else len(new_lines[original_selection.end[0] - first[0]])
+            - len(lines[original_selection.end[0] - first[0]])
+        )
+        self.selection = Selection(
+            start=(
+                original_selection.start[0],
+                original_selection.start[1] + change_at_start,
+            ),
+            end=(
+                original_selection.end[0],
+                original_selection.end[1] + change_at_cursor,
+            ),
+        )
+
+    def _insert_characters_around_selection(self, character: str) -> None:
+        first = min(*self.selection)
+        self.insert(character, location=first, maintain_selection_offset=True)
+        first, last = sorted([*self.selection])
+        self.insert(CLOSERS[character], location=last, maintain_selection_offset=False)
+        self.selection = Selection(start=first, end=last)
+
+    def _insert_closed_character_at_cursor(self, character: str) -> None:
+        if self._get_character_at_cursor() == character:
+            self.action_cursor_right()
+        else:
+            if (character in BRACKETS and self._should_complete_brackets()) or (
+                character in CLOSERS and self._should_complete_quotes()
+            ):
+                self.insert(character, self.cursor_location)
+                loc = self.selection
+                self.insert(CLOSERS[character], self.cursor_location)
+                self.selection = loc
+            else:
+                self.insert(character, self.cursor_location)
+
+    def _should_complete_brackets(self) -> bool:
+        if self.cursor_at_end_of_line:
+            return True
+
+        next_char = self._get_character_at_cursor()
+        if next_char.isspace():
+            return True
+        elif next_char in """>:,.="'""":
+            return True
+
+        return False
+
+    def _should_complete_quotes(self) -> bool:
+        next_char = self._get_character_at_cursor()
+        prev_char = self._get_character_before_cursor()
+        if (
+            self.cursor_at_end_of_line or next_char.isspace() or next_char in ")>:,.="
+        ) and (
+            self.cursor_at_start_of_line
+            or prev_char.isspace()
+            or NON_WORD.match(prev_char) is not None
+        ):
+            return True
+        return False
+
+    def _get_indent_level_of_line(self, index: int | None = None) -> int:
+        if index is None:
+            index = self.cursor_location[0]
+        line = self.document.get_line(index)
+        while line.isspace() and index > 0:
+            index -= 1
+            line = self.document.get_line(index)
+        if line.isspace():
+            return 0
+        indent_char = "\t" if self.indent_type == "tabs" else " "
+        indent_level = len(line) - len(line.lstrip(indent_char))
+        return indent_level
+
+    def _get_selected_lines(self) -> Tuple[List[str], Location, Location]:
+        [first, last] = sorted([self.selection.start, self.selection.end])
+        lines = [self.document.get_line(i) for i in range(first[0], last[0] + 1)]
+        return lines[first[0] : last[0] + 1], first, last
+
+
+class TextArea(Widget, can_focus=True, can_focus_children=False):
+    """
+    A Widget that presents a feature-rich, multiline text editor interface.
+
+    Attributes:
+        text (str): The contents of the TextArea
+        language (str): Must be the short name of a Pygments lexer
+            (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
+        theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
+            e.g., "bw", "github-dark", "solarized-light".
+        theme_colors (WidgetColors): The colors extracted from the theme.
+    """
+
+    DEFAULT_CSS = """
+    #validation_label {
+        color: $error;
+        text-style: italic;
+        margin: 0 0 0 3;
+    }
+    """
+
+    BINDINGS = [
+        Binding("ctrl+s", "save", "Save Query"),
+        Binding("ctrl+o", "load", "Open Query"),
+        Binding("ctrl+q", "quit", "Quit"),
+    ]
+
+    def __init__(
+        self,
+        *children: Widget,
+        name: Union[str, None] = None,
+        id: Union[str, None] = None,
+        classes: Union[str, None] = None,
+        disabled: bool = False,
+        language: Union[str, None] = None,
+        theme: str = "monokai",
+        use_system_clipboard: bool = True,
+    ) -> None:
+        """
+        Initializes an instance of a TextArea.
+
+        Args:
+            (see also textual.widget.Widget)
+            language (str): Must be the short name of a Pygments lexer
+                (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
+            theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
+                e.g., "bw", "github-dark", "solarized-light".
+        """
+        super().__init__(
+            *children, name=name, id=id, classes=classes, disabled=disabled
+        )
+        self._language = language
+        self.theme = theme
+        self.theme_colors = WidgetColors.from_theme(self.theme)
+        self.use_system_clipboard = use_system_clipboard
+
+    @property
+    def text(self) -> str:
+        """
+        Returns:
+            (str) The contents of the TextArea.
+        """
+        return self.text_input.text
+
+    @text.setter
+    def text(self, contents: str) -> None:
+        """
+        Args:
+            contents (str): A string (optionally containing newlines) to
+                set the contents of the TextArea equal to.
+        """
+        self.text_input.move_cursor((0, 0))
+        self.text_input.text = contents
+
+    @property
+    def selected_text(self) -> str:
+        """
+        Returns:
+            str: The contents of the TextArea between the selection
+            anchor and the cursor. Returns an empty string if the
+            selection anchor is not set.
+        """
+        return self.text_input.selected_text
+
+    @property
+    def cursor(self) -> Cursor:
+        """
+        Returns
+            Cursor: The location of the cursor in the TextInput
+        """
+        return Cursor(*self.text_input.cursor_location)
+
+    @cursor.setter
+    def cursor(self, cursor: Union[Cursor, Tuple[int, int]]) -> None:
+        """
+        Args:
+            cursor (Union[Cursor, Tuple[int, int]]): The position (line number, pos)
+            to move the cursor to
+        """
+        self.text_input.cursor_location = (cursor[0], cursor[1])
+
+    @property
+    def selection_anchor(self) -> Union[Cursor, None]:
+        """
+        Returns
+            Cursor: The location of the selection anchor in the TextInput
+        """
+        if self.text_input.selected_text:
+            return Cursor(
+                self.text_input.selection.start[0], self.text_input.selection.start[1]
+            )
+        else:
+            return None
+
+    @selection_anchor.setter
+    def selection_anchor(self, cursor: Union[Cursor, Tuple[int, int], None]) -> None:
+        """
+        Args:
+            cursor (Union[Cursor, Tuple[int, int], None]): The position
+            (line number, pos) to move the selection anchor to, or None
+            to clear the selection.
+        """
+        if cursor is None:
+            self.text_input.selection = Selection(
+                self.text_input.cursor_location, self.text_input.cursor_location
+            )
+        else:
+            self.text_input.selection = Selection(
+                (cursor[0], cursor[1]), self.text_input.cursor_location
+            )
+
+    @property
+    def language(self) -> Union[str, None]:
+        """
+        Returns
+            str | None: The Pygments short name of the active language
+        """
+        return self.text_input.language
+
+    @language.setter
+    def language(self, language: str) -> None:
+        """
+        Args:
+            langage (str | None): The Pygments short name for the new language
+        """
+        self.text_input.language = language
+
+    def insert_text_at_selection(self, text: str) -> None:
+        """
+        Inserts text at the current cursor position; if there is a selection anchor,
+        first deletes the current selection.
+
+        Args:
+            text (str): The text to be inserted.
+        """
+        self.text_input.replace(
+            text,
+            *self.text_input.selection,
+            maintain_selection_offset=False,
+        )
+
+    def compose(self) -> ComposeResult:
+        with TextContainer():
+            yield TextInput(
+                language=self._language,
+                theme=self.theme,
+            )
+        with FooterContainer(theme_colors=self.theme_colors):
+            yield Label("", id="validation_label")
+
+    def on_mount(self) -> None:
+        self.styles.background = self.theme_colors.bgcolor
+        self.text_container = self.query_one(TextContainer)
+        self.text_input = self.query_one(TextInput)
+        self.footer = self.query_one(FooterContainer)
+
+    def on_focus(self) -> None:
+        self.text_input.focus()
+
+    def on_click(self) -> None:
+        self.text_input.focus()
+
+    def action_save(self) -> None:
+        self._clear_footer_input()
+        self._mount_footer_input("save")
+
+    def action_load(self) -> None:
+        self._clear_footer_input()
+        self._mount_footer_input("open")
+
+    def _clear_footer_input(self) -> None:
+        try:
+            self.footer.query_one(PathInput).remove()
+        except Exception:
+            pass
+        try:
+            self.footer.query_one(Label).update("")
+        except Exception:
+            pass
+
+    def on_cancel_path_input(self) -> None:
+        self._clear_footer_input()
+
+    def _mount_footer_input(self, name: str) -> None:
+        if name == "open":
+            file_okay, dir_okay, must_exist = True, False, True
+        else:
+            file_okay, dir_okay, must_exist = True, False, False
+
+        input = PathInput(
+            id=f"textarea__{name}_input",
+            placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
+            file_okay=file_okay,
+            dir_okay=dir_okay,
+            must_exist=must_exist,
+        )
+        input.styles.background = self.theme_colors.bgcolor
+        input.styles.border = "round", self.theme_colors.contrast_text_color
+        input.styles.color = self.theme_colors.contrast_text_color
+        self.footer.mount(input)
+        input.focus()
+
+    def on_text_area_scroll_one(self, event: TextAreaScrollOne) -> None:
+        event.stop()
+        offset = 1 if event.direction == "down" else -1
+        self.text_container.scroll_to(
+            self.text_container.window_region.x,
+            self.text_container.window_region.y + offset,
+        )
+
+    def on_input_changed(self, message: Input.Changed) -> None:
+        if message.input.id in ("textarea__save_input", "textarea__open_input"):
+            label = self.footer.query_one(Label)
+            if message.validation_result and not message.validation_result.is_valid:
+                label.update(";".join(message.validation_result.failure_descriptions))
+            else:
+                label.update("")
+
+    def on_input_submitted(self, message: Input.Submitted) -> None:
+        """
+        Handle the submit event for the Save and Open modals.
+        """
+        expanded_path = expanduser(message.input.value)
+        if message.input.id == "textarea__save_input":
+            try:
+                with open(expanded_path, "w") as f:
+                    f.write(self.text)
+            except OSError as e:
+                self.app.push_screen(
+                    ErrorModal(
+                        title="Save File Error",
+                        header=(
+                            "There was an error when attempting to save your file:"
+                        ),
+                        error=e,
+                    )
+                )
+            else:
+                self.post_message(TextAreaSaved(path=expanded_path))
+        elif message.input.id == "textarea__open_input":
+            try:
+                with open(expanded_path, "r") as f:
+                    contents = f.read()
+            except OSError as e:
+                self.app.push_screen(
+                    ErrorModal(
+                        title="Open File Error",
+                        header=(
+                            "There was an error when attempting to open your file:"
+                        ),
+                        error=e,
+                    )
+                )
+            else:
+                self.text = contents
+        self._clear_footer_input()
+        self.text_input.focus()

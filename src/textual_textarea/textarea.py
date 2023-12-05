@@ -430,7 +430,10 @@ class TextInput(Static, can_focus=True):
                 cursor_before = self.cursor
                 if len(self.lines) > 1:
                     if self.cursor.lno == len(self.lines) - 1:
-                        self.cursor = Cursor(lno=self.cursor.lno - 1, pos=0)
+                        self.cursor = Cursor(
+                            lno=self.cursor.lno - 1,
+                            pos=len(self.lines[self.cursor.lno - 1]) - 1,
+                        )
                     else:
                         self.cursor = Cursor(lno=self.cursor.lno, pos=0)
                     self.lines = (

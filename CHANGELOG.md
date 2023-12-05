@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   This package now requires Textual >= 0.41.0, as it requires Textual's built-in TextArea widget.
+
 ## [0.7.3] - 2023-10-06
 
 -   The PathInput cursor no longer blinks if the app is run in headless mode (during tests). This only matters to prevent

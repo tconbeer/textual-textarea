@@ -6,6 +6,7 @@ from textual.app import App
 from textual.message import Message
 from textual.widgets import Input
 from textual_textarea import TextArea, TextAreaSaved
+from textual_textarea.next import TextArea as TextAreaNext
 
 
 @pytest.mark.parametrize("filename", ["foo.py", "empty.py"])
@@ -16,7 +17,8 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         contents = f.read()
 
     async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta")
+        assert isinstance(ta, (TextArea, TextAreaNext))
         assert ta.text == ""
         starting_text = "123"
         for key in starting_text:
@@ -49,7 +51,8 @@ async def test_save(app: App, tmp_path: Path) -> None:
     print(p)
     messages: List[Message] = []
     async with app.run_test(message_hook=messages.append) as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta")
+        assert isinstance(ta, (TextArea, TextAreaNext))
         ta.text = TEXT
 
         await pilot.press("ctrl+s")

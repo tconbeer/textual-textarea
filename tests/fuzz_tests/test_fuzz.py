@@ -13,7 +13,7 @@ class TextAreaApp(App, inherit_bindings=False):
         yield TextArea(language=None, use_system_clipboard=False)
 
     def on_mount(self) -> None:
-        self.text_area = self.query_one(TextArea)
+        self.text_area = self.query_one("#ta", expect_type=TextArea)
         self.text_area.focus()
 
 
@@ -54,7 +54,7 @@ async def test_fuzz_keys(keys: List[str]) -> None:
     print("--New test--")
     app = TextAreaApp()
     async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta", expect_type=TextArea)
         ta.text = "foo\nbar\nbaz\n\n\n"
         ta.text_input.clipboard = ["clipped!"]
         for key in keys:
