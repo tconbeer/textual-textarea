@@ -6,7 +6,6 @@ from typing import NamedTuple
 from pygments.styles import get_style_by_name
 from pygments.token import (
     Comment,
-    Error,
     Escape,
     Generic,
     Keyword,
@@ -98,7 +97,7 @@ def text_area_theme_from_pygments_name(pygments_name: str) -> TextAreaTheme:
             "method.call": _pick_best_analog([Name.Function, Name, Token]),
             "constant": _pick_best_analog([Name.Constant, Name, Token]),
             "constant.builtin": _pick_best_analog(
-                [Name.Builtin, Name.Constant, Name, Token]
+                [Name.Builtin, Name.Constant, Literal, Token]
             ),
             "boolean": _pick_best_analog([Name.Constant, Keyword, Name, Token]),
             "class": _pick_best_analog(
@@ -163,7 +162,14 @@ def text_area_theme_from_pygments_name(pygments_name: str) -> TextAreaTheme:
             ),
             "keyword.operator": _pick_best_analog([Operator, Punctuation, Token]),
             "exception": _pick_best_analog(
-                [Error, Name.Class, Name.Variable.Class, Name.Entity, Name, Token]
+                [
+                    Name.Function,
+                    Name.Class,
+                    Name.Variable.Class,
+                    Name.Entity,
+                    Name,
+                    Token,
+                ]
             ),
             "heading": _pick_best_analog(
                 [Generic.Heading, Generic.EmphStrong, Generic.Strong]

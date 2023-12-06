@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   The TextArea has been completely overhauled. It now uses the built-in TextArea widget under the hood.
 -   This package now requires Textual >= 0.41.0, as it requires Textual's built-in TextArea widget.
 
 ## [0.7.3] - 2023-10-06

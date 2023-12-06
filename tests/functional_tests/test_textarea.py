@@ -4,7 +4,6 @@ import pytest
 from textual.app import App
 from textual_textarea import TextArea
 from textual_textarea.key_handlers import Cursor
-from textual_textarea.next import TextArea as TextAreaNext
 from textual_textarea.serde import deserialize_lines, serialize_lines
 
 
@@ -325,8 +324,7 @@ async def test_keys(
         expected_lines = lines
 
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta")
-        assert isinstance(ta, (TextArea, TextAreaNext))
+        ta = app.query_one("#ta", expect_type=TextArea)
         ta.text = serialize_lines(lines)
         ta.cursor = cursor
         ta.selection_anchor = anchor
@@ -337,31 +335,6 @@ async def test_keys(
         assert ta.text == serialize_lines(expected_lines)
         assert ta.selection_anchor == expected_anchor
         assert ta.cursor == expected_cursor
-
-
-@pytest.mark.asyncio
-async def test_move_cursor(old_app: App) -> None:
-    app = old_app
-    async with app.run_test():
-        ta = app.query_one("#ta", expect_type=TextArea)
-        ti = ta.text_input
-        ti.lines = [f"{'X' * i} " for i in range(10)]
-
-        assert ta.cursor == Cursor(0, 0)
-        for i in range(10):
-            ti.move_cursor(100, i)
-            assert ta.cursor == Cursor(i, i)
-            ti.move_cursor(0, i)
-            assert ta.cursor == Cursor(i, 0)
-
-        ti.move_cursor(-100, -100)
-        assert ta.cursor == Cursor(0, 0)
-
-        ti.move_cursor(-10, 5)
-        assert ta.cursor == Cursor(5, 0)
-
-        ti.move_cursor(5, -5)
-        assert ta.cursor == Cursor(0, 0)
 
 
 @pytest.mark.parametrize(
@@ -387,8 +360,7 @@ async def test_copy_paste(
             return raw
 
     async with app_all_clipboards.run_test() as pilot:
-        ta = app_all_clipboards.query_one("#ta")
-        assert isinstance(ta, (TextArea, TextAreaNext))
+        ta = app_all_clipboards.query_one("#ta", expect_type=TextArea)
         ti = ta.text_input
         ta.text = original_text
         ta.cursor = starting_cursor
@@ -439,45 +411,9 @@ async def test_copy_paste(
 
 
 @pytest.mark.asyncio
-async def test_text_property(old_app: App) -> None:
-    app = old_app
-    async with app.run_test():
-        ta = app.query_one("#ta", expect_type=TextArea)
-        assert ta.text == ""
-        assert ta.selected_text == ""
-
-        ta.text = "select\nfoo"
-        assert ta.text_input.lines == ["select ", "foo "]
-        assert ta.selection_anchor is None
-        assert ta.selected_text == ""
-
-        # this input should be validated and cursor moved
-        # to EOF
-        ta.cursor = Cursor(100, 100)
-        assert ta.cursor == Cursor(1, 3)
-        assert ta.selection_anchor is None
-        assert ta.selected_text == ""
-
-        ta.selection_anchor = Cursor(0, 0)
-        assert ta.selection_anchor == Cursor(0, 0)
-        assert ta.selected_text == ta.text
-
-        ta.selection_anchor = Cursor(0, 1)
-        ta.cursor = Cursor(1, 1)
-        assert ta.selected_text == "elect\nf"
-
-        ta.text_input.lines = ["a ", " ", "b ", "c "]
-        assert ta.text == "a\n\nb\nc"
-        ta.cursor = Cursor(3, 0)
-        assert ta.selection_anchor == Cursor(0, 1)
-        assert ta.selected_text == "\n\nb\n"
-
-
-@pytest.mark.asyncio
 async def test_undo_redo(app: App) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta")
-        assert isinstance(ta, (TextArea, TextAreaNext))
+        ta = app.query_one("#ta", expect_type=TextArea)
         ti = ta.text_input
         assert ti
         assert ti.has_focus
@@ -575,8 +511,7 @@ async def test_insert_text(
     expected_text: str,
 ) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta")
-        assert isinstance(ta, (TextArea, TextAreaNext))
+        ta = app.query_one("#ta", expect_type=TextArea)
         ta.text = start_text
         ta.cursor = cursor
         ta.selection_anchor = selection
