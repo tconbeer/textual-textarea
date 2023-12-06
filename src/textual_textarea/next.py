@@ -12,12 +12,13 @@ from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
+from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import Input, Label
 from textual.widgets import TextArea as _TextArea
 from textual.widgets.text_area import Location, Selection
 
-from textual_textarea.colors import WidgetColors
+from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
@@ -560,6 +561,8 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
+    theme: Reactive[str] = reactive("monokai")
+
     def __init__(
         self,
         *children: Widget,
@@ -585,7 +588,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
         self._language = language
-        self.theme = theme
+        self._theme = theme
         self.theme_colors = WidgetColors.from_theme(self.theme)
         self.use_system_clipboard = use_system_clipboard
 
@@ -696,10 +699,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput(
-                language=self._language,
-                theme=self.theme,
-            )
+            yield TextInput(language=self._language)
         with FooterContainer(theme_colors=self.theme_colors):
             yield Label("", id="validation_label")
 
@@ -708,12 +708,25 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.text_container = self.query_one(TextContainer)
         self.text_input = self.query_one(TextInput)
         self.footer = self.query_one(FooterContainer)
+        self.theme = self._theme
 
     def on_focus(self) -> None:
         self.text_input.focus()
 
     def on_click(self) -> None:
         self.text_input.focus()
+
+    def watch_theme(self, theme: str) -> None:
+        try:
+            ti = self.text_input
+        except AttributeError:
+            return
+        if theme in ti.available_themes:
+            ti.theme = theme
+        else:
+            textarea_theme = text_area_theme_from_pygments_name(theme)
+            ti.register_theme(textarea_theme)
+            ti.theme = textarea_theme.name
 
     def action_save(self) -> None:
         self._clear_footer_input()
