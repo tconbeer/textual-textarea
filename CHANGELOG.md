@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.0] - 2023-12-06
+
 -   The TextArea has been completely overhauled. It now uses the built-in TextArea widget under the hood.
 -   This package now requires Textual >= 0.41.0, as it requires Textual's built-in TextArea widget.
 -   Double-click a word to select it; triple-click to select the row; quadruple-click to select the whole document.
@@ -178,7 +180,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.7.3...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.8.0...HEAD
+
+[0.8.0]: https://github.com/tconbeer/textual-textarea/compare/0.7.3...0.8.0
 
 [0.7.3]: https://github.com/tconbeer/textual-textarea/compare/0.7.2...0.7.3
 
