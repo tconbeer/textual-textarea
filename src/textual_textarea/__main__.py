@@ -26,7 +26,7 @@ class NextApp(App, inherit_bindings=False):
         try:
             language = sys.argv[1]
         except IndexError:
-            language = "python"
+            language = "sql"
         yield TextAreaNext(
             language=language, theme="monokai", use_system_clipboard=True, id="ta"
         )

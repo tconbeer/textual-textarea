@@ -425,6 +425,8 @@ class TextInput(_TextArea, inherit_bindings=False):
 
         original_selection = self.selection
         lines, first, last = self._get_selected_lines()
+        if kind == "dedent" and not lines:
+            return
 
         indent_width = 1 if self.indent_type == "tabs" else self.indent_width
         indent_char = "\t" if self.indent_type == "tabs" else " " * self.indent_width
