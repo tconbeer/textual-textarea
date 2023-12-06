@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 -   The TextArea has been completely overhauled. It now uses the built-in TextArea widget under the hood.
 -   This package now requires Textual >= 0.41.0, as it requires Textual's built-in TextArea widget.
+-   Double-click a word to select it; triple-click to select the row; quadruple-click to select the whole document.
 
 ## [0.7.3] - 2023-10-06
 

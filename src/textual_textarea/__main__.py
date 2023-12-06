@@ -13,7 +13,7 @@ class TextApp(App, inherit_bindings=False):
             language = "python"
         yield TextArea(
             language=language,
-            theme="solarized-dark",
+            theme="monokai",
             use_system_clipboard=True,
             id="ta",
         )

@@ -13,6 +13,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
 from textual.reactive import Reactive, reactive
+from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Input, Label
 from textual.widgets import TextArea as _TextArea
@@ -149,10 +150,6 @@ class TextInput(_TextArea, inherit_bindings=False):
         classes: str | None = None,
         disabled: bool = False,
     ) -> None:
-        # self.cursor_blink = False if self.app.is_headless else True
-        self.use_system_clipboard = use_system_clipboard
-        self.undo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
-        self.redo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
         super().__init__(
             text,
             language=language,
@@ -162,6 +159,13 @@ class TextInput(_TextArea, inherit_bindings=False):
             classes=classes,
             disabled=disabled,
         )
+        self.cursor_blink = False if self.app.is_headless else True
+        self.use_system_clipboard = use_system_clipboard
+        self.undo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
+        self.redo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
+        self.double_click_location: Location | None = None
+        self.double_click_timer: Timer | None = None
+        self.consecutive_clicks: int = 0
 
     def on_mount(self) -> None:
         self.undo_timer = self.set_interval(
@@ -260,14 +264,44 @@ class TextInput(_TextArea, inherit_bindings=False):
             event.prevent_default()
             self._indent_selection(kind="dedent")
 
-    def on_mouse_down(self) -> None:
+    def on_mouse_down(self, event: events.MouseDown) -> None:
         self.undo_timer.reset()
+        target = self.get_target_document_location(event)
+        if (
+            self.double_click_location is not None
+            and self.double_click_location == target
+        ):
+            event.prevent_default()
+            self._selecting = True
+            self.capture_mouse()
+            self._pause_blink(visible=True)
 
-    def on_mouse_move(self) -> None:
-        self.undo_timer.reset()
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        target = self.get_target_document_location(event)
+        if (
+            self.consecutive_clicks > 0
+            and self.double_click_location is not None
+            and self.double_click_location == target
+        ):
+            if self.consecutive_clicks == 1:
+                self.action_select_word()
+            elif self.consecutive_clicks == 2:
+                self.action_select_line()
+                self.action_cursor_right(select=True)
+            else:
+                self.action_select_all()
+            self.consecutive_clicks += 1
+        else:
+            self._create_undo_snapshot()
+            self.double_click_location = target
+            self.consecutive_clicks += 1
 
-    def on_mouse_up(self) -> None:
-        self._create_undo_snapshot()
+        if self.double_click_timer is not None:
+            self.double_click_timer.reset()
+        else:
+            self.double_click_timer = self.set_timer(
+                delay=0.5, callback=self._clear_double_click, name="double_click_timer"
+            )
 
     def on_paste(self, event: Paste) -> None:
         event.prevent_default()
@@ -325,6 +359,20 @@ class TextInput(_TextArea, inherit_bindings=False):
         if self.clipboard:
             self.post_message(Paste(self.clipboard))
 
+    def action_select_word(self) -> None:
+        prev = self._get_character_before_cursor()
+        next = self._get_character_at_cursor()
+        at_start_of_word = self._word_pattern.match(prev) is None
+        at_end_of_word = self._word_pattern.match(next) is None
+        if at_start_of_word and not at_end_of_word:
+            self.action_cursor_word_right(select=True)
+        elif at_end_of_word and not at_start_of_word:
+            self.action_cursor_word_left(select=True)
+            self.section = Selection(start=self.selection.end, end=self.selection.start)
+        else:
+            self.action_cursor_word_left(select=False)
+            self.action_cursor_word_right(select=True)
+
     def action_scroll_one(self, direction: str = "down") -> None:
         if direction == "down":
             self.scroll_relative(y=1, animate=False)
@@ -379,6 +427,11 @@ class TextInput(_TextArea, inherit_bindings=False):
             self.text = state.text
             self.selection = state.selection
 
+    def _clear_double_click(self) -> None:
+        self.consecutive_clicks = 0
+        self.double_click_location = None
+        self.double_click_timer = None
+
     def _copy_selection(self) -> None:
         if self.selected_text:
             self.clipboard = self.selected_text
@@ -412,11 +465,15 @@ class TextInput(_TextArea, inherit_bindings=False):
                 self.redo_stack = deque(maxlen=UNDO_SIZE)
 
     def _get_character_at_cursor(self) -> str:
+        if self.cursor_at_end_of_line:
+            return ""
         return self.get_text_range(
             start=self.cursor_location, end=self.get_cursor_right_location()
         )
 
     def _get_character_before_cursor(self) -> str:
+        if self.cursor_at_start_of_line:
+            return ""
         return self.get_text_range(
             start=self.get_cursor_left_location(), end=self.cursor_location
         )
@@ -495,7 +552,7 @@ class TextInput(_TextArea, inherit_bindings=False):
             return True
 
         next_char = self._get_character_at_cursor()
-        if next_char.isspace():
+        if not next_char or next_char.isspace():
             return True
         elif next_char in """>:,.="'""":
             return True
