@@ -20,7 +20,7 @@ pyperclip = "^1.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = "0.41.0"
+textual = "0.44.1"
 textual-dev = "^1.2.1"
 
 [tool.poetry.group.static.dependencies]
