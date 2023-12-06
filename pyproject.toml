@@ -15,12 +15,13 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-textual = ">=0.27.0, <1.0.0"
+textual = { version = ">=0.41.0, <1.0.0", extras = ["syntax"] }
 pyperclip = "^1.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = {version="0.27.0", extras=["dev"]}
+textual = "0.41.0"
+textual-dev = "^1.2.1"
 
 [tool.poetry.group.static.dependencies]
 black = "^23.3.0"
@@ -31,7 +32,6 @@ types-pygments = "^2.16.0.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
 pytest-asyncio = "^0.21.0"
-hypothesis = "^6.82.6"
 
 [tool.ruff]
 select = ["E", "F", "I"]

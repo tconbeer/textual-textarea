@@ -3,8 +3,6 @@ from typing import Any, Union
 from textual.containers import Container, ScrollableContainer
 from textual.widget import Widget
 
-from textual_textarea.colors import WidgetColors
-
 
 class TextContainer(
     ScrollableContainer,
@@ -41,7 +39,6 @@ class FooterContainer(
 
     def __init__(
         self,
-        theme_colors: WidgetColors,
         *children: Widget,
         name: Union[str, None] = None,
         id: Union[str, None] = None,
@@ -51,4 +48,3 @@ class FooterContainer(
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
-        self.theme_colors = theme_colors

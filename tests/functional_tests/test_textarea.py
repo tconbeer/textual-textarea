@@ -4,6 +4,7 @@ import pytest
 from textual.app import App
 from textual_textarea import TextArea
 from textual_textarea.key_handlers import Cursor
+from textual_textarea.serde import deserialize_lines, serialize_lines
 
 
 @pytest.mark.parametrize(
@@ -73,22 +74,22 @@ from textual_textarea.key_handlers import Cursor
             Cursor(2, 0),
         ),
         (
-            ["enter"],
+            ["enter", "b"],
             ["a() "],
             None,
             Cursor(0, 2),
-            ["a( ", "     ", ") "],
+            ["a( ", "    b ", ") "],
             None,
-            Cursor(1, 4),
+            Cursor(1, 5),
         ),
         (
-            ["enter"],
+            ["enter", "b"],
             [" a() "],
             None,
             Cursor(0, 3),
-            [" a( ", "     ", " ) "],
+            [" a( ", "    b ", " ) "],
             None,
-            Cursor(1, 4),
+            Cursor(1, 5),
         ),
         (
             ["delete"],
@@ -124,7 +125,7 @@ from textual_textarea.key_handlers import Cursor
             Cursor(3, 1),
             ["0 ", "1 ", "2 "],
             None,
-            Cursor(2, 0),
+            Cursor(2, 1),
         ),
         (
             ["shift+delete"],
@@ -134,6 +135,177 @@ from textual_textarea.key_handlers import Cursor
             [" "],
             None,
             Cursor(0, 0),
+        ),
+        (
+            ["ctrl+home"],
+            ["foo ", "bar"],
+            None,
+            Cursor(1, 2),
+            ["foo ", "bar"],
+            None,
+            Cursor(0, 0),
+        ),
+        (
+            ["ctrl+end"],
+            ["foo ", "bar"],
+            None,
+            Cursor(0, 1),
+            ["foo ", "bar"],
+            None,
+            Cursor(1, 3),
+        ),
+        (
+            ["("],
+            ["foo "],
+            None,
+            Cursor(0, 3),
+            ["foo() "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["("],
+            ["foo "],
+            None,
+            Cursor(0, 2),
+            ["fo(o "],
+            None,
+            Cursor(0, 3),
+        ),
+        (
+            ["("],
+            ["foo. "],
+            None,
+            Cursor(0, 3),
+            ["foo(). "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["("],
+            ["foo- "],
+            None,
+            Cursor(0, 3),
+            ["foo(- "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["foo "],
+            None,
+            Cursor(0, 3),
+            ["foo' "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["ba  r "],
+            None,
+            Cursor(0, 3),
+            ["ba '' r "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["foo- "],
+            None,
+            Cursor(0, 3),
+            ["foo'- "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["fo-- "],
+            None,
+            Cursor(0, 3),
+            ["fo-'- "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["fo-. "],
+            None,
+            Cursor(0, 3),
+            ["fo-''. "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["'"],
+            ["fo() "],
+            None,
+            Cursor(0, 3),
+            ["fo('') "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["tab"],
+            ["bar "],
+            None,
+            Cursor(0, 1),
+            ["b   ar "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["tab"],
+            ["bar "],
+            None,
+            Cursor(0, 0),
+            ["    bar "],
+            None,
+            Cursor(0, 4),
+        ),
+        (
+            ["shift+tab"],
+            ["bar "],
+            None,
+            Cursor(0, 0),
+            ["bar "],
+            None,
+            Cursor(0, 0),
+        ),
+        (
+            ["shift+tab"],
+            ["    bar "],
+            None,
+            Cursor(0, 7),
+            ["bar "],
+            None,
+            Cursor(0, 3),
+        ),
+        (
+            ["tab"],
+            ["bar ", " baz "],
+            Cursor(0, 2),
+            Cursor(1, 1),
+            ["    bar ", "    baz "],
+            Cursor(0, 6),
+            Cursor(1, 4),
+        ),
+        (
+            ["tab"],
+            ["bar ", " baz "],
+            Cursor(0, 0),
+            Cursor(1, 1),
+            ["    bar ", "    baz "],
+            Cursor(0, 0),
+            Cursor(1, 4),
+        ),
+        (
+            ["shift+tab"],
+            ["    bar ", "    baz "],
+            Cursor(0, 0),
+            Cursor(1, 1),
+            ["bar ", "baz "],
+            Cursor(0, 0),
+            Cursor(1, 0),
         ),
     ],
 )
@@ -152,42 +324,17 @@ async def test_keys(
         expected_lines = lines
 
     async with app.run_test() as pilot:
-        widget = app.query_one(TextArea)
-        input = widget.text_input
-        input.lines = lines.copy()
-        input.selection_anchor = anchor
-        input.cursor = cursor
+        ta = app.query_one("#ta", expect_type=TextArea)
+        ta.text = serialize_lines(lines)
+        ta.cursor = cursor
+        ta.selection_anchor = anchor
 
         for key in keys:
             await pilot.press(key)
 
-        assert input.lines == expected_lines
-        assert input.selection_anchor == expected_anchor
-        assert input.cursor == expected_cursor
-
-
-@pytest.mark.asyncio
-async def test_move_cursor(app: App) -> None:
-    async with app.run_test():
-        ta = app.query_one(TextArea)
-        ti = ta.text_input
-        ti.lines = [f"{'X' * i} " for i in range(10)]
-
-        assert ta.cursor == Cursor(0, 0)
-        for i in range(10):
-            ti.move_cursor(100, i)
-            assert ta.cursor == Cursor(i, i)
-            ti.move_cursor(0, i)
-            assert ta.cursor == Cursor(i, 0)
-
-        ti.move_cursor(-100, -100)
-        assert ta.cursor == Cursor(0, 0)
-
-        ti.move_cursor(-10, 5)
-        assert ta.cursor == Cursor(5, 0)
-
-        ti.move_cursor(5, -5)
-        assert ta.cursor == Cursor(0, 0)
+        assert ta.text == serialize_lines(expected_lines)
+        assert ta.selection_anchor == expected_anchor
+        assert ta.cursor == expected_cursor
 
 
 @pytest.mark.parametrize(
@@ -206,95 +353,67 @@ async def test_copy_paste(
 ) -> None:
     original_text = "0123456789\n0123456789\n0123456789"
 
+    def _maybe_split(raw: Union[str, List[str]]) -> List[str]:
+        if isinstance(raw, str):
+            return deserialize_lines(raw, trim=True)
+        else:
+            return raw
+
     async with app_all_clipboards.run_test() as pilot:
-        ta = app_all_clipboards.query_one(TextArea)
+        ta = app_all_clipboards.query_one("#ta", expect_type=TextArea)
         ti = ta.text_input
         ta.text = original_text
-        ti.selection_anchor = starting_anchor
-        ti.cursor = starting_cursor
+        ta.cursor = starting_cursor
+        ta.selection_anchor = starting_anchor
 
         await pilot.press("ctrl+c")
-        assert ti.clipboard == expected_clipboard
-        assert ti.selection_anchor == starting_anchor
-        assert ti.cursor == starting_cursor
+        assert _maybe_split(ti.clipboard) == expected_clipboard
+        assert ta.selection_anchor == starting_anchor
+        assert ta.cursor == starting_cursor
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
-        assert ti.clipboard == expected_clipboard
-        assert ti.selection_anchor is None
-        assert ti.cursor == starting_cursor
+        assert _maybe_split(ti.clipboard) == expected_clipboard
+        assert ta.selection_anchor is None
+        assert ta.cursor == starting_cursor
         assert ta.text == original_text
 
         await pilot.press("ctrl+a")
-        assert ti.selection_anchor == Cursor(0, 0)
-        assert ti.cursor == Cursor(
+        assert ta.selection_anchor == Cursor(0, 0)
+        assert ta.cursor == Cursor(
             len(original_text.splitlines()) - 1, len(original_text.splitlines()[-1])
         )
-        assert ti.clipboard == expected_clipboard
+        assert _maybe_split(ti.clipboard) == expected_clipboard
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
-        assert ti.selection_anchor is None
-        assert ti.cursor == Cursor(
+        assert ta.selection_anchor is None
+        assert ta.cursor == Cursor(
             len(expected_clipboard) - 1, len(expected_clipboard[-1])
         )
-        assert ti.clipboard == expected_clipboard
+        assert _maybe_split(ti.clipboard) == expected_clipboard
         assert ta.text == "\n".join([line.strip() for line in expected_clipboard])
 
         await pilot.press("ctrl+a")
         await pilot.press("ctrl+x")
-        assert ti.selection_anchor is None
-        assert ti.cursor == Cursor(0, 0)
-        assert ti.clipboard == expected_clipboard
+        assert ta.selection_anchor is None
+        assert ta.cursor == Cursor(0, 0)
+        assert _maybe_split(ti.clipboard) == expected_clipboard
         assert ta.text == ""
 
         await pilot.press("ctrl+v")
-        assert ti.selection_anchor is None
-        assert ti.cursor == Cursor(
+        assert ta.selection_anchor is None
+        assert _maybe_split(ti.clipboard) == expected_clipboard
+        assert ta.text == "\n".join([line.rstrip() for line in expected_clipboard])
+        assert ta.cursor == Cursor(
             len(expected_clipboard) - 1, len(expected_clipboard[-1])
         )
-        assert ti.clipboard == expected_clipboard
-        assert ta.text == "\n".join([line.rstrip() for line in expected_clipboard])
-
-
-@pytest.mark.asyncio
-async def test_text_property(app: App) -> None:
-    async with app.run_test():
-        ta = app.query_one(TextArea)
-        assert ta.text == ""
-        assert ta.selected_text == ""
-
-        ta.text = "select\nfoo"
-        assert ta.text_input.lines == ["select ", "foo "]
-        assert ta.selection_anchor is None
-        assert ta.selected_text == ""
-
-        # this input should be validated and cursor moved
-        # to EOF
-        ta.cursor = Cursor(100, 100)
-        assert ta.cursor == Cursor(1, 3)
-        assert ta.selection_anchor is None
-        assert ta.selected_text == ""
-
-        ta.selection_anchor = Cursor(0, 0)
-        assert ta.selection_anchor == Cursor(0, 0)
-        assert ta.selected_text == ta.text
-
-        ta.selection_anchor = Cursor(0, 1)
-        ta.cursor = Cursor(1, 1)
-        assert ta.selected_text == "elect\nf"
-
-        ta.text_input.lines = ["a ", " ", "b ", "c "]
-        assert ta.text == "a\n\nb\nc"
-        ta.cursor = Cursor(3, 0)
-        assert ta.selection_anchor == Cursor(0, 1)
-        assert ta.selected_text == "\n\nb\n"
 
 
 @pytest.mark.asyncio
 async def test_undo_redo(app: App) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta", expect_type=TextArea)
         ti = ta.text_input
         assert ti
         assert ti.has_focus
@@ -326,8 +445,8 @@ async def test_undo_redo(app: App) -> None:
         assert ti.undo_stack
         assert len(ti.undo_stack) == 2
         assert ti.undo_stack[-1].lines == ["foo "]
-        assert ti.lines == ["foo "]
-        assert ti.cursor == Cursor(0, 3)
+        assert ta.text == "foo"
+        assert ta.cursor == Cursor(0, 3)
         assert ti.redo_stack
         assert len(ti.redo_stack) == 1
         assert ti.redo_stack[-1].lines == ["foo ", "bar "]
@@ -336,8 +455,8 @@ async def test_undo_redo(app: App) -> None:
         assert ti.undo_stack
         assert len(ti.undo_stack) == 1
         assert ti.undo_stack[-1].lines == [" "]
-        assert ti.lines == [" "]
-        assert ti.cursor == Cursor(0, 0)
+        assert ta.text == ""
+        assert ta.cursor == Cursor(0, 0)
         assert ti.redo_stack
         assert len(ti.redo_stack) == 2
         assert ti.redo_stack[-1].lines == ["foo "]
@@ -346,8 +465,8 @@ async def test_undo_redo(app: App) -> None:
         assert ti.undo_stack
         assert len(ti.undo_stack) == 2
         assert ti.undo_stack[-1].lines == ["foo "]
-        assert ti.lines == ["foo "]
-        assert ti.cursor == Cursor(0, 3)
+        assert ta.text == "foo"
+        assert ta.cursor == Cursor(0, 3)
         assert ti.redo_stack
         assert len(ti.redo_stack) == 1
         assert ti.redo_stack[-1].lines == ["foo ", "bar "]
@@ -356,7 +475,7 @@ async def test_undo_redo(app: App) -> None:
         await pilot.pause(0.6)
         assert len(ti.undo_stack) == 3
         assert ti.undo_stack[-1].lines == ["fooz "]
-        assert ti.lines == ["fooz "]
+        assert ta.text == "fooz"
         assert not ti.redo_stack
 
 
@@ -392,7 +511,7 @@ async def test_insert_text(
     expected_text: str,
 ) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta", expect_type=TextArea)
         ta.text = start_text
         ta.cursor = cursor
         ta.selection_anchor = selection

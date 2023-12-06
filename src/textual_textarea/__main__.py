@@ -11,10 +11,15 @@ class TextApp(App, inherit_bindings=False):
             language = sys.argv[1]
         except IndexError:
             language = "python"
-        yield TextArea(language=language, theme="zenburn", use_system_clipboard=True)
+        yield TextArea(
+            language=language,
+            theme="monokai",
+            use_system_clipboard=True,
+            id="ta",
+        )
 
     def on_mount(self) -> None:
-        ta = self.query_one(TextArea)
+        ta = self.query_one("#ta", expect_type=TextArea)
         ta.focus()
 
 

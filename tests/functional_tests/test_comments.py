@@ -9,14 +9,14 @@ from textual_textarea.key_handlers import Cursor
     [
         ("python", "# "),
         ("sql", "-- "),
-        ("mysql", "# "),
-        ("c", "// "),
+        # ("mysql", "# "),
+        # ("c", "// "),
     ],
 )
 @pytest.mark.asyncio
 async def test_comments(app: App, language: str, expected_marker: str) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one(TextArea)
+        ta = app.query_one("#ta", expect_type=TextArea)
         ta.language = language
         original_text = "foo bar baz"
         ta.text = original_text

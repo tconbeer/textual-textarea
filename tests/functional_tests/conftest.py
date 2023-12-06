@@ -1,8 +1,9 @@
 from typing import Type, Union
 
 import pytest
-from textual.app import App, ComposeResult, CSSPathType
+from textual.app import App, ComposeResult
 from textual.driver import Driver
+from textual.types import CSSPathType
 from textual_textarea.textarea import TextArea
 
 
@@ -21,11 +22,13 @@ class TextAreaApp(App, inherit_bindings=False):
 
     def compose(self) -> ComposeResult:
         yield TextArea(
-            language=self.language, use_system_clipboard=self.use_system_clipboard
+            language=self.language,
+            use_system_clipboard=self.use_system_clipboard,
+            id="ta",
         )
 
     def on_mount(self) -> None:
-        ta = self.query_one(TextArea)
+        ta = self.query_one("#ta", expect_type=TextArea)
         ta.focus()
 
 
@@ -35,7 +38,10 @@ def app() -> App:
     return app
 
 
-@pytest.fixture(params=[False, True], ids=["no_sys_clipboard", "default"])
+@pytest.fixture(
+    params=[False, True],
+    ids=["no_sys_clipboard", "default"],
+)
 def app_all_clipboards(request: pytest.FixtureRequest) -> App:
     app = TextAreaApp(use_system_clipboard=request.param)
     return app
