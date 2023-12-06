@@ -1,11 +1,13 @@
 # Textual Textarea
-![Textual Textarea Screenshot](textarea.png)
+![Textual Textarea Screenshot](textarea.svg)
 
 ## Note: This is **NOT** the official TextArea widget!
 
 With v0.38.0, Textual added a built-in TextArea widget. You probably want to use 
-that widget instead of this one. In a future version, this widget will be refactored
-to use the official widget (and likely add some features and change some key bindings).
+that widget instead of this one. This project predated the official widget; versions < v0.8.0
+had a completely separate implmentation.
+
+Since v0.8.0, this project uses the built-in TextArea widget, but adds the features outlined below.
 
 ## Installation
 
@@ -15,14 +17,14 @@ pip install textual-textarea
 
 ## Features
 Full-featured text editor experience with VS-Code-like bindings, in your Textual App:
-- Syntax highlighting and support for themes.
-- Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>Home/End</kbd>).
-- Select text using <kbd>shift</kbd> or click and drag.
+- Syntax highlighting and support for Pygments themes.
+- Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>ctrl+Home/End</kbd>).
 - Open (<kbd>ctrl+o</kbd>) and save (<kbd>ctrl+s</kbd>) files.
 - Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard.
 - Comment selections with <kbd>ctrl+/</kbd>.
 - Indent and dedent (optionally for a multiline selection) to tab stops with <kbd>Tab</kbd> and <kbd>shift+Tab</kbd>.
 - Automatic completions of quotes and brackets.
+- Select text by double-, triple-, or quadruple-clicking.
 - Quit with <kbd>ctrl+q</kbd>.
 
 ## Usage
@@ -38,10 +40,10 @@ from textual.app import App, ComposeResult
 
 class TextApp(App, inherit_bindings=False):
     def compose(self) -> ComposeResult:
-        yield TextArea(language="python", theme="solarized-dark")
+        yield TextArea(language="python", theme="nord-darker", id="ta")
 
     def on_mount(self) -> None:
-        ta = self.query_one(TextArea)
+        ta = self.query_one("#id", expect_type=TextArea)
         ta.focus()
 
 app = TextApp()
