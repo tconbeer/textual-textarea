@@ -58,7 +58,6 @@ async def test_save(app: App, tmp_path: Path) -> None:
         assert save_input.has_focus
 
         save_input.value = str(p)
-        app.save_screenshot("debug")
         await pilot.press("enter")
         await pilot.pause()
         assert len(messages) > 1
