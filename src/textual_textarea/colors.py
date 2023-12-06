@@ -191,7 +191,7 @@ def _get_rich_markup(pygments_markup: str) -> str:
 
     markup = pygments_markup.replace("bg:", "on ")
     markup = markup.replace("border:", "frame ")
-    markup = re.sub("#([0-9a-f]{3})(?:\s|$)", _hex_3_to_6, markup, flags=re.IGNORECASE)
+    markup = re.sub(r"#([0-9a-f]{3})(?:\s|$)", _hex_3_to_6, markup, flags=re.IGNORECASE)
     return markup
 
 

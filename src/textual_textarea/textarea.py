@@ -38,7 +38,7 @@ BRACKETS = {
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 UNDO_SIZE = 25
-NON_WORD = re.compile("\W")
+NON_WORD = re.compile(r"\W")
 
 
 @dataclass
@@ -385,11 +385,16 @@ class TextInput(_TextArea, inherit_bindings=False):
             stripped_lines = [line.lstrip() for line in lines]
             indents = [len(line) - len(line.lstrip()) for line in lines]
             # if lines are already commented, remove them
-            if all(
-                [line.startswith(self.inline_comment_marker) for line in stripped_lines]
+            if lines and all(
+                [
+                    not line or line.startswith(self.inline_comment_marker)
+                    for line in stripped_lines
+                ]
             ):
                 offsets = [
-                    2 if line[len(self.inline_comment_marker)].isspace() else 1
+                    0
+                    if not line
+                    else (2 if line[len(self.inline_comment_marker)].isspace() else 1)
                     for line in stripped_lines
                 ]
                 for lno, indent, offset in zip(
@@ -402,12 +407,16 @@ class TextInput(_TextArea, inherit_bindings=False):
                     )
             # add comment tokens to all lines
             else:
-                for lno, indent in zip(range(first[0], last[0] + 1), indents):
-                    self.insert(
-                        f"{self.inline_comment_marker} ",
-                        location=(lno, indent),
-                        maintain_selection_offset=True,
-                    )
+                indent = min(
+                    [indent for indent, line in zip(indents, stripped_lines) if line]
+                )
+                for lno, stripped_line in enumerate(stripped_lines, start=first[0]):
+                    if stripped_line:
+                        self.insert(
+                            f"{self.inline_comment_marker} ",
+                            location=(lno, indent),
+                            maintain_selection_offset=True,
+                        )
 
     def action_undo(self) -> None:
         self._create_undo_snapshot()
@@ -588,7 +597,7 @@ class TextInput(_TextArea, inherit_bindings=False):
     def _get_selected_lines(self) -> Tuple[List[str], Location, Location]:
         [first, last] = sorted([self.selection.start, self.selection.end])
         lines = [self.document.get_line(i) for i in range(first[0], last[0] + 1)]
-        return lines[first[0] : last[0] + 1], first, last
+        return lines, first, last
 
 
 class TextArea(Widget, can_focus=True, can_focus_children=False):

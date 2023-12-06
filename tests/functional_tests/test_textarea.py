@@ -521,3 +521,40 @@ async def test_insert_text(
         await pilot.pause()
 
         assert ta.text == expected_text
+
+
+@pytest.mark.asyncio
+async def test_toggle_comment(app: App) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextArea)
+        ta.text = "one\ntwo\n\nthree"
+        ta.cursor = Cursor(0, 0)
+        await pilot.pause()
+
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# one\ntwo\n\nthree"
+
+        await pilot.press("down")
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# one\n# two\n\nthree"
+
+        await pilot.press("ctrl+a")
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# # one\n# # two\n\n# three"
+
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# one\n# two\n\nthree"
+
+        await pilot.press("up")
+        await pilot.press("up")
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# one\ntwo\n\nthree"
+
+        await pilot.press("shift+down")
+        await pilot.press("shift+down")
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "# one\n# two\n\n# three"
+
+        await pilot.press("ctrl+a")
+        await pilot.press("ctrl+underscore")
+        assert ta.text == "one\ntwo\n\nthree"
