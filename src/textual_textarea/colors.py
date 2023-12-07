@@ -59,10 +59,10 @@ def text_area_theme_from_pygments_name(pygments_name: str) -> TextAreaTheme:
     )
     cursor_line_gutter_style = RichStyle(
         color=contrast_text_color.blend(bgcolor, 0.5).rich_color,
-        bgcolor=bgcolor.blend(contrast_text_color, 0.15).rich_color,
+        bgcolor=bgcolor.blend(contrast_text_color, 0.10).rich_color,
     )
     cursor_line_style = RichStyle(
-        bgcolor=bgcolor.blend(contrast_text_color, 0.1).rich_color
+        bgcolor=bgcolor.blend(contrast_text_color, 0.05).rich_color
     )
 
     theme = TextAreaTheme(
