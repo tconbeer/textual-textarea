@@ -299,7 +299,6 @@ class TextInput(_TextArea, inherit_bindings=False):
         self.inline_comment_marker = INLINE_MARKERS.get(language)
 
     def replace_current_word(self, new_word: str) -> None:
-        self.log("replacing using completer:", self.completer_active)
         current_word = self._get_word_before_cursor()
         offset = len(current_word)
         self.replace(
@@ -532,7 +531,6 @@ class TextInput(_TextArea, inherit_bindings=False):
     def _handle_enter(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
-        self.log("handle enter active completer:", self.completer_active)
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
             return
@@ -957,7 +955,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self, event: TextInput.ShowCompletionList
     ) -> None:
         event.stop()
-        self.log("Active completer:", self.text_input.completer_active)
         if self.text_input.completer_active == "path":
             self.completion_list.show_completions(event.prefix, self.path_completer)
         elif self.text_input.completer_active == "member":
@@ -969,15 +966,12 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self, event: TextInput.CompletionListKey
     ) -> None:
         event.stop()
-        self.log(
-            "on_text_input_completion_list_key active completer:",
-            self.text_input.completer_active,
-        )
         self.completion_list.process_keypress(event.key)
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         event.stop()
-        self.text_input.replace_current_word(str(event.option.prompt))
+        value = getattr(event.option, "value", None) or str(event.option.prompt)
+        self.text_input.replace_current_word(value)
         self.completion_list.open = False
         self.text_input.completer_active = None
 

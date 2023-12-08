@@ -8,10 +8,23 @@ from textual.css.scalar import ScalarOffset
 from textual.events import Key, Resize
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.widget import Widget
 from textual.widgets import OptionList
+from textual.widgets._option_list import NewOptionListContent
+from textual.widgets.option_list import Option
 
 from textual_textarea.messages import TextAreaHideCompletionList
+
+
+class Completion(Option):
+    def __init__(
+        self,
+        prompt: RenderableType,
+        id: str | None = None,
+        disabled: bool = False,
+        value: str | None = None,
+    ) -> None:
+        super().__init__(prompt, id, disabled)
+        self.value = value
 
 
 class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
@@ -20,7 +33,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         layer: overlay;
         padding: 0;
         border: none;
-        width: 30;
+        width: 40;
         max-height: 8;
         display: none;
     }
@@ -38,12 +51,42 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     open: Reactive[bool] = reactive(False)
     cursor_screen_offset: tuple[int, int] = (0, 0)
     prefix: str = ""
+    additional_x_offset: int = 0
+
+    def __init__(
+        self,
+        *content: NewOptionListContent,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ):
+        super().__init__(
+            *content, name=name, id=id, classes=classes, disabled=disabled, wrap=False
+        )
 
     def on_completion_list_completions_ready(self, event: CompletionsReady) -> None:
+        INNER_CONTENT_WIDTH = 37
         event.stop()
         self.prefix = event.prefix
         self.clear_options()
-        self.add_options(items=event.items)
+
+        # if the completions are wider than the widget, we have to trunctate them
+        max_length = max(map(len, map(str, event.items)))
+        if max_length > INNER_CONTENT_WIDTH:
+            truncate_amount = min(
+                max_length - INNER_CONTENT_WIDTH, len(event.prefix) - 2
+            )
+            self.additional_x_offset = truncate_amount - 1
+            items = [
+                Completion(prompt=f"…{str(item)[truncate_amount:]}", value=str(item))
+                for item in event.items
+            ]
+        else:
+            self.additional_x_offset = 0
+            items = [Completion(prompt=item, value=str(item)) for item in event.items]
+
+        self.add_options(items=items)
         self.action_first()
         self.open = True
 
@@ -66,7 +109,6 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         self, prefix: str, completer: Callable[[str], list[RenderableType]] | None
     ) -> None:
         matches = completer(prefix) if completer is not None else []
-        self.log("MATCHES: ", matches)
         if matches:
             self.post_message(
                 self.CompletionsReady(
@@ -90,12 +132,12 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
     def _get_list_offset(self, width: int, height: int) -> ScalarOffset:
         prefix_length = len(self.prefix)
-        cursor_x = self.cursor_screen_offset[0] - prefix_length
-        if isinstance(self.parent, Widget):
-            container_size = self.parent.container_size
-        else:
-            container_size = self.screen.container_size
+        cursor_x = self.cursor_screen_offset[0]
+        container_size = getattr(
+            self.parent, "container_size", self.screen.container_size
+        )
 
+        x = cursor_x - prefix_length + self.additional_x_offset
         max_x = container_size.width - width
 
         cursor_y = self.cursor_screen_offset[1]
@@ -108,4 +150,4 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         else:
             raise ValueError("Doesn't fit.")
 
-        return ScalarOffset.from_offset((min(cursor_x, max_x), y))
+        return ScalarOffset.from_offset((min(x, max_x), y))
