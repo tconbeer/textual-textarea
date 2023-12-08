@@ -45,7 +45,7 @@ UNDO_SIZE = 25
 SINGLE_QUOTED_EXPR = r'(rb?|f|b|br|u&?|@)?"([^"\\]*(\\.[^"\\]*|""[^"\\]*)*)"'
 DOUBLE_QUOTED_EXPR = r"(rb?|f|b|br|u&?|x)?'([^'\\]*(\\.[^'\\]*|''[^'\\]*)*)'"
 BACKTICK_EXPR = r"`([^`\\]*(\\.[^`\\]*)*)`"
-PATH_PROG = re.compile(r"\S+")
+PATH_PROG = re.compile(r"[^\"\'\s]+")
 MEMBER_PROG = re.compile(
     rf"(\w+|{SINGLE_QUOTED_EXPR}|{DOUBLE_QUOTED_EXPR}|{BACKTICK_EXPR})(\.|::?)\w*",
     flags=re.IGNORECASE,
