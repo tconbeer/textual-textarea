@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import stat
 from pathlib import Path
-from typing import Union
 
 from rich.highlighter import Highlighter
 from textual.message import Message
@@ -13,19 +14,33 @@ class CancelPathInput(Message):
     pass
 
 
+def path_completer(prefix: str) -> list[str]:
+    try:
+        original = Path(prefix)
+        p = original.expanduser()
+        if p.is_dir():
+            matches = list(p.iterdir())
+        else:
+            matches = list(p.parent.glob(f"{p.name}*"))
+        if original != p and original.parts and original.parts[0] == "~":
+            return [str(Path("~") / m.relative_to(Path.home())) for m in matches]
+        elif not original.is_absolute() and prefix.startswith("./"):
+            return [f"./{m}" for m in matches]
+        else:
+            return [str(m) for m in matches]
+    except Exception:
+        return []
+
+
 class PathSuggester(Suggester):
     def __init__(self) -> None:
         super().__init__(use_cache=True, case_sensitive=True)
 
-    async def get_suggestion(self, value: str) -> Union[str, None]:
-        try:
-            p = Path(value).expanduser()
-            matches = list(p.parent.glob(f"{p.parts[-1]}*"))
-            if len(matches) == 1:
-                return str(matches[0])
-            else:
-                return None
-        except Exception:
+    async def get_suggestion(self, value: str) -> str | None:
+        matches = path_completer(value)
+        if len(matches) == 1:
+            return str(matches[0])
+        else:
             return None
 
 
@@ -73,14 +88,14 @@ class PathInput(Input):
 
     def __init__(
         self,
-        value: Union[str, None] = None,
+        value: str | None = None,
         placeholder: str = "",
-        highlighter: Union[Highlighter, None] = None,
+        highlighter: Highlighter | None = None,
         password: bool = False,
         *,
-        name: Union[str, None] = None,
-        id: Union[str, None] = None,
-        classes: Union[str, None] = None,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
         disabled: bool = False,
         dir_okay: bool = True,
         file_okay: bool = True,

@@ -1,7 +1,6 @@
 from textual_textarea.key_handlers import Cursor
 from textual_textarea.messages import (
     TextAreaClipboardError,
-    TextAreaCursorMoved,
     TextAreaSaved,
 )
 from textual_textarea.path_input import CancelPathInput, PathInput
@@ -12,7 +11,6 @@ __all__ = [
     "PathInput",
     "Cursor",
     "CancelPathInput",
-    "TextAreaCursorMoved",
     "TextAreaClipboardError",
     "TextAreaSaved",
 ]

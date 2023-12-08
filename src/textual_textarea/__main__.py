@@ -1,11 +1,21 @@
 import sys
 
 from textual.app import App, ComposeResult
+from textual.widgets import Placeholder
 
 from textual_textarea import TextArea
 
 
 class TextApp(App, inherit_bindings=False):
+    CSS = """
+    TextArea {
+        height: 1fr;
+    }
+    Placeholder {
+        height: 1fr;
+    }
+    """
+
     def compose(self) -> ComposeResult:
         try:
             language = sys.argv[1]
@@ -13,10 +23,11 @@ class TextApp(App, inherit_bindings=False):
             language = "python"
         yield TextArea(
             language=language,
-            theme="monokai",
+            theme="nord-darker",
             use_system_clipboard=True,
             id="ta",
         )
+        yield Placeholder()
 
     def on_mount(self) -> None:
         ta = self.query_one("#ta", expect_type=TextArea)

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   TextArea now provides auto-complete. By default, it will auto-complete paths; to auto-complete words or
+    members of a namespace, set TextArea.word_completer, TextArea.member_completer, TextArea.path_completer
+    to a Callable[[str], list[str]]. The callables will receive the current word (or path, etc.) as their
+    argument and should return a list of completions.
+
 ## [0.8.0] - 2023-12-06
 
 -   The TextArea has been completely overhauled. It now uses the built-in TextArea widget under the hood.

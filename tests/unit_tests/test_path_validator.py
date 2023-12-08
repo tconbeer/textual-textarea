@@ -1,7 +1,34 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
-from textual_textarea.path_input import PathValidator
+from textual_textarea.path_input import PathValidator, path_completer
+
+
+@pytest.mark.parametrize(
+    "relpath,expected_matches",
+    [
+        ("", ["foo", "bar"]),
+        ("f", ["foo"]),
+        ("fo", ["foo"]),
+        ("foo", ["baz.txt"]),
+        ("foo/", ["baz.txt"]),
+        ("b", ["bar"]),
+        ("c", []),
+    ],
+)
+def test_path_completer(
+    data_dir: Path,
+    relpath: str,
+    expected_matches: list[str],
+) -> None:
+    test_path = data_dir / "test_validator" / relpath
+    test_dir = test_path if test_path.is_dir() else test_path.parent
+    prefix = str(test_path)
+    print(prefix)
+    matches = path_completer(prefix)
+    assert matches == [str(test_dir / m) for m in expected_matches]
 
 
 @pytest.mark.parametrize(
