@@ -10,8 +10,8 @@ from textual_textarea.key_handlers import Cursor
 
 
 @pytest.fixture
-def word_completer() -> Callable[[str], list[str]]:
-    def _completer(prefix: str) -> list[str]:
+def word_completer() -> Callable[[str], list[tuple[str, str]]]:
+    def _completer(prefix: str) -> list[tuple[str, str]]:
         words = [
             "satisfy",
             "season",
@@ -24,14 +24,14 @@ def word_completer() -> Callable[[str], list[str]]:
             "space",
             "super",
         ]
-        return [w for w in words if w.startswith(prefix)]
+        return [(w, w) for w in words if w.startswith(prefix)]
 
     return _completer
 
 
 @pytest.mark.asyncio
 async def test_autocomplete(
-    app: App, word_completer: Callable[[str], list[str]]
+    app: App, word_completer: Callable[[str], list[tuple[str, str]]]
 ) -> None:
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextArea)

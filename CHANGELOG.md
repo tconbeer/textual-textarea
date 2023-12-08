@@ -6,8 +6,8 @@ All notable changes to this project will be documented in this file.
 
 -   TextArea now provides auto-complete. By default, it will auto-complete paths; to auto-complete words or
     members of a namespace, set TextArea.word_completer, TextArea.member_completer, TextArea.path_completer
-    to a Callable[[str], list[str]]. The callables will receive the current word (or path, etc.) as their
-    argument and should return a list of completions.
+    to a Callable[[str], list[tuple[str, str]]]. The callables will receive the current word (or path, etc.) as their
+    argument and should return a list of completions, where completions are (label, value) pairs.
 
 ## [0.8.0] - 2023-12-06
 

@@ -43,7 +43,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     """
 
     class CompletionsReady(Message, bubble=False):
-        def __init__(self, prefix: str, items: list[RenderableType]) -> None:
+        def __init__(
+            self, prefix: str, items: list[tuple[RenderableType, str]]
+        ) -> None:
             super().__init__()
             self.items = items
             self.prefix = prefix
@@ -71,20 +73,22 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         self.prefix = event.prefix
         self.clear_options()
 
-        # if the completions are wider than the widget, we have to trunctate them
-        max_length = max(map(len, map(str, event.items)))
+        # if the completions' prompts are wider than the widget,
+        # we have to trunctate them
+        prompts = [item[0] for item in event.items]
+        max_length = max(map(len, map(str, prompts)))
         if max_length > INNER_CONTENT_WIDTH:
             truncate_amount = min(
                 max_length - INNER_CONTENT_WIDTH, len(event.prefix) - 2
             )
             self.additional_x_offset = truncate_amount - 1
             items = [
-                Completion(prompt=f"…{str(item)[truncate_amount:]}", value=str(item))
+                Completion(prompt=f"…{str(item[0])[truncate_amount:]}", value=item[1])
                 for item in event.items
             ]
         else:
             self.additional_x_offset = 0
-            items = [Completion(prompt=item, value=str(item)) for item in event.items]
+            items = [Completion(prompt=item[0], value=item[1]) for item in event.items]
 
         self.add_options(items=items)
         self.action_first()
@@ -106,15 +110,13 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
     @work(thread=True, exclusive=True, group="completers")
     def show_completions(
-        self, prefix: str, completer: Callable[[str], list[RenderableType]] | None
+        self,
+        prefix: str,
+        completer: Callable[[str], list[tuple[RenderableType, str]]] | None,
     ) -> None:
         matches = completer(prefix) if completer is not None else []
         if matches:
-            self.post_message(
-                self.CompletionsReady(
-                    prefix=prefix, items=sorted(matches, key=lambda x: str(x))
-                )
-            )
+            self.post_message(self.CompletionsReady(prefix=prefix, items=matches))
         else:
             self.post_message(TextAreaHideCompletionList())
 

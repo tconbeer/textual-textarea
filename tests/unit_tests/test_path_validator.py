@@ -28,7 +28,7 @@ def test_path_completer(
     prefix = str(test_path)
     print(prefix)
     matches = path_completer(prefix)
-    assert matches == [str(test_dir / m) for m in expected_matches]
+    assert matches == [(str(test_dir / m), str(test_dir / m)) for m in expected_matches]
 
 
 @pytest.mark.parametrize(

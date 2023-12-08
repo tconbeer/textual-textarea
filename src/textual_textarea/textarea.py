@@ -789,10 +789,12 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         language: Union[str, None] = None,
         theme: str = "monokai",
         use_system_clipboard: bool = True,
-        path_completer: Callable[[str], Sequence[RenderableType]]
+        path_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
         | None = path_completer,
-        member_completer: Callable[[str], Sequence[RenderableType]] | None = None,
-        word_completer: Callable[[str], Sequence[RenderableType]] | None = None,
+        member_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
+        | None = None,
+        word_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
+        | None = None,
     ) -> None:
         """
         Initializes an instance of a TextArea.

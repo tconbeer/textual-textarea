@@ -14,7 +14,7 @@ class CancelPathInput(Message):
     pass
 
 
-def path_completer(prefix: str) -> list[str]:
+def path_completer(prefix: str) -> list[tuple[str, str]]:
     try:
         original = Path(prefix)
         p = original.expanduser()
@@ -23,11 +23,12 @@ def path_completer(prefix: str) -> list[str]:
         else:
             matches = list(p.parent.glob(f"{p.name}*"))
         if original != p and original.parts and original.parts[0] == "~":
-            return [str(Path("~") / m.relative_to(Path.home())) for m in matches]
+            prompts = [str(Path("~") / m.relative_to(Path.home())) for m in matches]
         elif not original.is_absolute() and prefix.startswith("./"):
-            return [f"./{m}" for m in matches]
+            prompts = [f"./{m}" for m in matches]
         else:
-            return [str(m) for m in matches]
+            prompts = [str(m) for m in matches]
+        return [(p, p) for p in prompts]
     except Exception:
         return []
 
@@ -39,7 +40,7 @@ class PathSuggester(Suggester):
     async def get_suggestion(self, value: str) -> str | None:
         matches = path_completer(value)
         if len(matches) == 1:
-            return str(matches[0])
+            return str(matches[0][0])
         else:
             return None
 
