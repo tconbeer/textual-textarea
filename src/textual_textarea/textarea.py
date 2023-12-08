@@ -949,7 +949,11 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.text_input.completer_active = None
 
     def on_text_area_selection_changed(self, event: TextInput.SelectionChanged) -> None:
-        self.completion_list.cursor_screen_offset = self.text_input.cursor_screen_offset
+        region_x, region_y, _, _ = self.text_input.content_region
+        self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
+            region_x,
+            region_y,
+        )
 
     def on_text_input_show_completion_list(
         self, event: TextInput.ShowCompletionList

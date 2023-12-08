@@ -21,13 +21,13 @@ class TextApp(App, inherit_bindings=False):
             language = sys.argv[1]
         except IndexError:
             language = "python"
+        yield Placeholder()
         yield TextArea(
             language=language,
             theme="nord-darker",
             use_system_clipboard=True,
             id="ta",
         )
-        yield Placeholder()
 
     def on_mount(self) -> None:
         ta = self.query_one("#ta", expect_type=TextArea)

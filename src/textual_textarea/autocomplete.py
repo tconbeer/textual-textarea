@@ -49,7 +49,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             self.prefix = prefix
 
     open: Reactive[bool] = reactive(False)
-    cursor_screen_offset: tuple[int, int] = (0, 0)
+    cursor_offset: tuple[int, int] = (0, 0)
     prefix: str = ""
     additional_x_offset: int = 0
 
@@ -132,7 +132,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
     def _get_list_offset(self, width: int, height: int) -> ScalarOffset:
         prefix_length = len(self.prefix)
-        cursor_x = self.cursor_screen_offset[0]
+        cursor_x, cursor_y = self.cursor_offset
         container_size = getattr(
             self.parent, "container_size", self.screen.container_size
         )
@@ -140,7 +140,6 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         x = cursor_x - prefix_length + self.additional_x_offset
         max_x = container_size.width - width
 
-        cursor_y = self.cursor_screen_offset[1]
         fits_above = cursor_y > height + 1
         fits_below = container_size.height - cursor_y > height + 1
         if fits_below:
