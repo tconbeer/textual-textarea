@@ -523,6 +523,7 @@ class TextInput(_TextArea, inherit_bindings=False):
             pattern = WORD_PROG
 
         match = pattern.match(search_string[::-1])
+        self.log("MATCH:", match)
         if match:
             return match.group(0)[::-1]
         else:
@@ -569,6 +570,9 @@ class TextInput(_TextArea, inherit_bindings=False):
         event.prevent_default()
         if self.completer_active != "member":
             self.post_message(TextAreaHideCompletionList())
+        else:
+            prefix = self._get_word_before_cursor(event=event)
+            self.post_message(self.ShowCompletionList(prefix=prefix))
         assert event.character is not None
         if self.selection.start == self.selection.end:
             self._insert_closed_character_at_cursor(event.character)

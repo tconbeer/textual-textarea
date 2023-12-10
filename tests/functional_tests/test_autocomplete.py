@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable
+from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App
@@ -27,6 +28,13 @@ def word_completer() -> Callable[[str], list[tuple[str, str]]]:
         return [(w, w) for w in words if w.startswith(prefix)]
 
     return _completer
+
+
+@pytest.fixture
+def member_completer() -> Callable[[str], list[tuple[str, str]]]:
+    mock = MagicMock()
+    mock.return_value = [("completion", "completion")]
+    return mock
 
 
 @pytest.mark.asyncio
@@ -107,3 +115,41 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
         assert ta.text_input.completer_active == "path"
         assert ta.completion_list.open is True
         assert ta.completion_list.option_count == 2
+
+
+@pytest.mark.parametrize(
+    "text,keys,expected_prefix",
+    [
+        ("foo bar", ["full_stop"], "bar."),
+        ("foo 'bar'", ["full_stop"], "'bar'."),
+        ("foo `bar`", ["full_stop"], "`bar`."),
+        ('foo "bar"', ["full_stop"], '"bar".'),
+        ("foo bar", ["colon"], "bar:"),
+        ("foo bar", ["colon", "colon"], "bar::"),
+        ('foo "bar"', ["colon", "colon"], '"bar"::'),
+        ("foo bar", ["full_stop", "quotation_mark"], 'bar."'),
+        ('foo "bar"', ["full_stop", "quotation_mark"], '"bar"."'),
+    ],
+)
+@pytest.mark.asyncio
+async def test_autocomplete_members(
+    app: App,
+    member_completer: MagicMock,
+    text: str,
+    keys: list[str],
+    expected_prefix: str,
+) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextArea)
+        ta.member_completer = member_completer
+        ta.focus()
+        ta.text = text
+        ta.cursor = Cursor(0, len(text))
+        for key in keys:
+            await pilot.press(key)
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        member_completer.assert_called_with(expected_prefix)
+        assert ta.text_input.completer_active == "member"
+        assert ta.completion_list.open is True
