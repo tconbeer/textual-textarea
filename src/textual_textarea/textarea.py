@@ -1023,6 +1023,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def on_cancel_path_input(self) -> None:
         self._clear_footer_input()
+        self.text_input.focus()
 
     def _mount_footer_input(self, name: str) -> None:
         if name == "open":
