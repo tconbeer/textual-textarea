@@ -89,7 +89,6 @@ class TextInput(_TextArea, inherit_bindings=False):
     }
     """
     BINDINGS = [
-        Binding("escape", "screen.focus_next", "Shift Focus", show=False),
         # Cursor movement
         Binding("up", "cursor_up", "cursor up", show=False),
         Binding("down", "cursor_down", "cursor down", show=False),
