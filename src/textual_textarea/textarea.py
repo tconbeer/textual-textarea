@@ -523,7 +523,6 @@ class TextInput(_TextArea, inherit_bindings=False):
             pattern = WORD_PROG
 
         match = pattern.match(search_string[::-1])
-        self.log("MATCH:", match)
         if match:
             return match.group(0)[::-1]
         else:
