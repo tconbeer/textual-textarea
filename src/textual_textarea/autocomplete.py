@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 from rich.console import RenderableType
+from rich.text import Text
 from textual import work
 from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
@@ -43,9 +44,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     """
 
     class CompletionsReady(Message, bubble=False):
-        def __init__(
-            self, prefix: str, items: list[tuple[RenderableType, str]]
-        ) -> None:
+        def __init__(self, prefix: str, items: list[tuple[str, str]]) -> None:
             super().__init__()
             self.items = items
             self.prefix = prefix
@@ -75,16 +74,16 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
         # if the completions' prompts are wider than the widget,
         # we have to trunctate them
-        prompts = [item[0] for item in event.items]
-        max_length = max(map(len, map(str, prompts)))
+        prompts = [Text.from_markup(item[0]) for item in event.items]
+        max_length = max(map(lambda x: x.cell_len, prompts))
         if max_length > INNER_CONTENT_WIDTH:
             truncate_amount = min(
                 max_length - INNER_CONTENT_WIDTH, len(event.prefix) - 2
             )
             self.additional_x_offset = truncate_amount - 1
             items = [
-                Completion(prompt=f"…{str(item[0])[truncate_amount:]}", value=item[1])
-                for item in event.items
+                Completion(prompt=f"…{prompt[truncate_amount:]}", value=item[1])
+                for prompt, item in zip(prompts, event.items)
             ]
         else:
             self.additional_x_offset = 0
@@ -122,7 +121,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     def show_completions(
         self,
         prefix: str,
-        completer: Callable[[str], list[tuple[RenderableType, str]]] | None,
+        completer: Callable[[str], list[tuple[str, str]]] | None,
     ) -> None:
         matches = completer(prefix) if completer is not None else []
         if matches:
