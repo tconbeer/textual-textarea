@@ -42,12 +42,14 @@ BRACKETS = {
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 UNDO_SIZE = 25
-SINGLE_QUOTED_EXPR = r'(rb?|f|b|br|u&?|@)?"([^"\\]*(\\.[^"\\]*|""[^"\\]*)*)"'
-DOUBLE_QUOTED_EXPR = r"(rb?|f|b|br|u&?|x)?'([^'\\]*(\\.[^'\\]*|''[^'\\]*)*)'"
+
+# these patterns need to match a reversed string!
+DOUBLE_QUOTED_EXPR = r'"([^"\\]*(\\.[^"\\]*|""[^"\\]*)*)"(b?r|f|b|rb|&?u|@)?'
+SINGLE_QUOTED_EXPR = r"'([^'\\]*(\\.[^'\\]*|''[^'\\]*)*)'(b?r|f|b|rb|&?u|x)?"
 BACKTICK_EXPR = r"`([^`\\]*(\\.[^`\\]*)*)`"
 PATH_PROG = re.compile(r"[^\"\'\s]+")
 MEMBER_PROG = re.compile(
-    rf"(\w+|{SINGLE_QUOTED_EXPR}|{DOUBLE_QUOTED_EXPR}|{BACKTICK_EXPR})(\.|::?)\w*",
+    rf"\w*(`|'|\")?(\.|::?)(\w+|{SINGLE_QUOTED_EXPR}|{DOUBLE_QUOTED_EXPR}|{BACKTICK_EXPR})",
     flags=re.IGNORECASE,
 )
 WORD_PROG = re.compile(r"\w+")
@@ -163,6 +165,12 @@ class TextInput(_TextArea, inherit_bindings=False):
         def __init__(self, prefix: str) -> None:
             super().__init__()
             self.prefix = prefix
+
+        def __repr__(self) -> str:
+            return f"ShowCompletionList({self.prefix=})"
+
+        def __str__(self) -> str:
+            return f"ShowCompletionList({self.prefix=})"
 
     class CompletionListKey(Message):
         def __init__(self, key: events.Key) -> None:
@@ -559,7 +567,8 @@ class TextInput(_TextArea, inherit_bindings=False):
     def _handle_quote_or_bracket(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
-        self.post_message(TextAreaHideCompletionList())
+        if self.completer_active != "member":
+            self.post_message(TextAreaHideCompletionList())
         assert event.character is not None
         if self.selection.start == self.selection.end:
             self._insert_closed_character_at_cursor(event.character)
