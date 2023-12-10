@@ -115,7 +115,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
                     percent_unit=self.styles.max_height.percent_unit,
                 )
             else:
-                self.open = False
+                self.post_message(TextAreaHideCompletionList())
 
     @work(thread=True, exclusive=True, group="completers")
     def show_completions(
