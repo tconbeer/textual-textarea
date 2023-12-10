@@ -4,7 +4,7 @@ from typing import Callable
 
 from rich.console import RenderableType
 from textual import work
-from textual.css.scalar import ScalarOffset
+from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
 from textual.message import Message
 from textual.reactive import Reactive, reactive
@@ -97,6 +97,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     def watch_open(self, open: bool) -> None:
         if open:
             self.add_class("open")
+            self.styles.max_height = Scalar(
+                value=8.0, unit=Unit.CELLS, percent_unit=Unit.PERCENT
+            )
         else:
             self.remove_class("open")
 
@@ -106,7 +109,14 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
                 width=event.size.width, height=event.size.height
             )
         except ValueError:
-            self.open = False
+            if self.styles.max_height is not None and self.styles.max_height.value > 1:
+                self.styles.max_height = Scalar(
+                    value=self.styles.max_height.value - 1,
+                    unit=self.styles.max_height.unit,
+                    percent_unit=self.styles.max_height.percent_unit,
+                )
+            else:
+                self.open = False
 
     @work(thread=True, exclusive=True, group="completers")
     def show_completions(
@@ -142,8 +152,8 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         x = cursor_x - prefix_length + self.additional_x_offset
         max_x = container_size.width - width
 
-        fits_above = cursor_y > height + 1
-        fits_below = container_size.height - cursor_y > height + 1
+        fits_above = cursor_y + 1 > height
+        fits_below = container_size.height - cursor_y > height
         if fits_below:
             y = cursor_y + 1
         elif fits_above:

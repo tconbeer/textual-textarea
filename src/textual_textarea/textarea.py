@@ -970,6 +970,11 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self, event: TextInput.ShowCompletionList
     ) -> None:
         event.stop()
+        region_x, region_y, _, _ = self.text_input.content_region
+        self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
+            region_x,
+            region_y,
+        )
         if self.text_input.completer_active == "path":
             self.completion_list.show_completions(event.prefix, self.path_completer)
         elif self.text_input.completer_active == "member":
