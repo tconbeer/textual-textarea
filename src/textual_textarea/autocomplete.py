@@ -49,6 +49,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             self.items = items
             self.prefix = prefix
 
+    INNER_CONTENT_WIDTH = 37  # should be 3 less than width for scroll bar.
     open: Reactive[bool] = reactive(False)
     cursor_offset: tuple[int, int] = (0, 0)
     prefix: str = ""
@@ -67,7 +68,6 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         )
 
     def on_completion_list_completions_ready(self, event: CompletionsReady) -> None:
-        INNER_CONTENT_WIDTH = 37
         event.stop()
         self.prefix = event.prefix
         self.clear_options()
@@ -76,9 +76,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         # we have to trunctate them
         prompts = [Text.from_markup(item[0]) for item in event.items]
         max_length = max(map(lambda x: x.cell_len, prompts))
-        if max_length > INNER_CONTENT_WIDTH:
+        if max_length > self.INNER_CONTENT_WIDTH:
             truncate_amount = min(
-                max_length - INNER_CONTENT_WIDTH, len(event.prefix) - 2
+                max_length - self.INNER_CONTENT_WIDTH, len(event.prefix) - 2
             )
             self.additional_x_offset = truncate_amount - 1
             items = [
