@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.9.0] - 2023-12-12
+
 -   TextArea now provides auto-complete. By default, it will auto-complete paths; to auto-complete words or
     members of a namespace, set TextArea.word_completer, TextArea.member_completer, TextArea.path_completer
-    to a Callable[[str], list[tuple[str, str]]]. The callables will receive the current word (or path, etc.) as their
+    to a Callable\[[str], list\[tuple[str, str]]]. The callables will receive the current word (or path, etc.) as their
     argument and should return a list of completions, where completions are (label, value) pairs.
 -   The TextArea is now focused when the Open or Save inputs are cancelled.
 
@@ -186,7 +188,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.9.0...HEAD
+
+[0.9.0]: https://github.com/tconbeer/textual-textarea/compare/0.8.0...0.9.0
 
 [0.8.0]: https://github.com/tconbeer/textual-textarea/compare/0.7.3...0.8.0
 
