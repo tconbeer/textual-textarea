@@ -13,7 +13,8 @@ class TextContainer(
     DEFAULT_CSS = """
         TextContainer {
             height: 1fr;
-            width: 100%
+            width: 100%;
+            layers: main overlay;
         }
     """
 

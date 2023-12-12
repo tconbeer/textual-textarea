@@ -5,20 +5,23 @@ from collections import deque
 from dataclasses import dataclass
 from math import ceil, floor
 from os.path import expanduser
-from typing import Deque, List, Literal, Tuple, Union
+from typing import Callable, Deque, List, Literal, Sequence, Tuple, Union
 
 import pyperclip
+from rich.console import RenderableType
 from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
+from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.timer import Timer
 from textual.widget import Widget
-from textual.widgets import Input, Label
+from textual.widgets import Input, Label, OptionList
 from textual.widgets import TextArea as _TextArea
 from textual.widgets.text_area import Location, Selection
 
+from textual_textarea.autocomplete import CompletionList
 from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
@@ -26,10 +29,11 @@ from textual_textarea.error_modal import ErrorModal
 from textual_textarea.key_handlers import Cursor
 from textual_textarea.messages import (
     TextAreaClipboardError,
+    TextAreaHideCompletionList,
     TextAreaSaved,
     TextAreaScrollOne,
 )
-from textual_textarea.path_input import PathInput
+from textual_textarea.path_input import PathInput, path_completer
 
 BRACKETS = {
     "(": ")",
@@ -38,7 +42,18 @@ BRACKETS = {
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
 UNDO_SIZE = 25
-NON_WORD = re.compile(r"\W")
+
+# these patterns need to match a reversed string!
+DOUBLE_QUOTED_EXPR = r'"([^"\\]*(\\.[^"\\]*|""[^"\\]*)*)"(b?r|f|b|rb|&?u|@)?'
+SINGLE_QUOTED_EXPR = r"'([^'\\]*(\\.[^'\\]*|''[^'\\]*)*)'(b?r|f|b|rb|&?u|x)?"
+BACKTICK_EXPR = r"`([^`\\]*(\\.[^`\\]*)*)`"
+PATH_PROG = re.compile(r"[^\"\'\s]+")
+MEMBER_PROG = re.compile(
+    rf"\w*(`|'|\")?(\.|::?)(\w+|{SINGLE_QUOTED_EXPR}|{DOUBLE_QUOTED_EXPR}|{BACKTICK_EXPR})",
+    flags=re.IGNORECASE,
+)
+WORD_PROG = re.compile(r"\w+")
+NON_WORD_CHAR_PROG = re.compile(r"\W")
 
 
 @dataclass
@@ -66,8 +81,14 @@ class InputState:
 
 
 class TextInput(_TextArea, inherit_bindings=False):
+    DEFAULT_CSS = """
+    TextInput {
+        width: 1fr;
+        height: 1fr;
+        layer: main;
+    }
+    """
     BINDINGS = [
-        Binding("escape", "screen.focus_next", "Shift Focus", show=False),
         # Cursor movement
         Binding("up", "cursor_up", "cursor up", show=False),
         Binding("down", "cursor_down", "cursor down", show=False),
@@ -137,6 +158,23 @@ class TextInput(_TextArea, inherit_bindings=False):
     ]
 
     clipboard: str = ""
+    completer_active: Literal["path", "member", "word"] | None = None
+
+    class ShowCompletionList(Message):
+        def __init__(self, prefix: str) -> None:
+            super().__init__()
+            self.prefix = prefix
+
+        def __repr__(self) -> str:
+            return f"ShowCompletionList({self.prefix=})"
+
+        def __str__(self) -> str:
+            return f"ShowCompletionList({self.prefix=})"
+
+    class CompletionListKey(Message):
+        def __init__(self, key: events.Key) -> None:
+            super().__init__()
+            self.key = key
 
     def __init__(
         self,
@@ -197,75 +235,29 @@ class TextInput(_TextArea, inherit_bindings=False):
             "right_square_bracket",
             "right_curly_bracket",
         ):
-            event.stop()
-            event.prevent_default()
-            assert event.character is not None
-            if self.selection.start == self.selection.end:
-                self._insert_closed_character_at_cursor(event.character)
-            elif event.key in (
-                "right_parenthesis",
-                "right_square_bracket",
-                "right_curly_bracket",
-            ):
-                self.replace(event.character, *self.selection)
-            else:
-                self._insert_characters_around_selection(event.character)
+            self._handle_quote_or_bracket(event)
         elif event.key == "enter":
-            event.stop()
-            event.prevent_default()
-            nl = self.document.newline
-            first, last = sorted([*self.selection])
-            indent = self._get_indent_level_of_line(index=first[0])
-            self.selection = Selection(start=first, end=first)
-            char_before = self._get_character_before_cursor()
-            if char_before in BRACKETS:
-                if self.indent_type == "tabs":
-                    new_indent = indent + 1
-                    indent_char = "\t"
-                else:
-                    new_indent = (
-                        indent + self.indent_width - (indent % self.indent_width)
-                    )
-                    indent_char = " "
-                self.replace(f"{nl}{indent_char*new_indent}", first, last)
-                char_at = self._get_character_at_cursor()
-                if char_at == BRACKETS[char_before]:
-                    loc = self.selection
-                    self.insert(f"{nl}{indent * indent_char}")
-                    self.selection = loc
-            else:
-                indent_char = "\t" if self.indent_type == "tabs" else " "
-                self.insert(
-                    f"{nl}{indent * indent_char}", location=self.cursor_location
-                )
+            self._handle_enter(event)
         elif event.key == "tab":
-            event.stop()
-            event.prevent_default()
-            first, last = sorted([*self.selection])
-            # in some cases, selections are replaced with indent
-            if first[0] == last[0] and (
-                first[1] == last[1]
-                or first[1] != 0
-                or last[1] != len(self.document.get_line(last[0])) - 1
-            ):
-                indent_char = "\t" if self.indent_type == "tabs" else " "
-                indent_width = 1 if self.indent_type == "tabs" else self.indent_width
-                self.replace(
-                    f"{indent_char*(indent_width - first[1] % indent_width)}",
-                    first,
-                    last,
-                    maintain_selection_offset=False,
-                )
-            # usually, selected lines are prepended with four-ish spaces
-            else:
-                self._indent_selection(kind="indent")
+            self._handle_tab(event)
         elif event.key == "shift+tab":
-            event.stop()
-            event.prevent_default()
-            self._indent_selection(kind="dedent")
+            self._handle_shift_tab(event)
+        elif event.key in ("up", "down", "pageup", "pagedown"):
+            self._handle_up_down(event)
+        elif event.key == "backspace":
+            self._handle_backspace(event)
+        elif event.key in ("slash", "backslash"):
+            self._handle_slash(event)
+        elif event.key in ("full_stop", "colon"):
+            self._handle_separator(event)
+        elif event.character and event.is_printable:
+            self._handle_printable_character(event)
+        else:
+            self.post_message(TextAreaHideCompletionList())
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
         self.undo_timer.reset()
+        self.post_message(TextAreaHideCompletionList())
         target = self.get_target_document_location(event)
         if (
             self.double_click_location is not None
@@ -306,16 +298,28 @@ class TextInput(_TextArea, inherit_bindings=False):
     def on_paste(self, event: Paste) -> None:
         event.prevent_default()
         event.stop()
+        self.post_message(TextAreaHideCompletionList())
         self._create_undo_snapshot()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
 
     def watch_language(self, language: str) -> None:
         self.inline_comment_marker = INLINE_MARKERS.get(language)
 
+    def replace_current_word(self, new_word: str) -> None:
+        current_word = self._get_word_before_cursor()
+        offset = len(current_word)
+        self.replace(
+            new_word,
+            start=(self.cursor_location[0], self.cursor_location[1] - offset),
+            end=self.cursor_location,
+            maintain_selection_offset=False,
+        )
+
     def action_copy(self) -> None:
         self._copy_selection()
 
     def action_cut(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         self._create_undo_snapshot()
         self._copy_selection()
         if not self.selected_text:
@@ -323,14 +327,17 @@ class TextInput(_TextArea, inherit_bindings=False):
         self.delete(*self.selection)
 
     def action_cursor_doc_start(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         self.selection = Selection(start=(0, 0), end=(0, 0))
 
     def action_cursor_doc_end(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         lno = self.document.line_count - 1
         loc = (lno, len(self.document.get_line(lno)))
         self.selection = Selection(start=loc, end=loc)
 
     def action_delete_line(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         self._create_undo_snapshot()
         if self.selection.start != self.cursor_location:  # selection active
             self.delete(*self.selection, maintain_selection_offset=False)
@@ -349,6 +356,7 @@ class TextInput(_TextArea, inherit_bindings=False):
                 self.cursor_location = (line, 0)
 
     def action_paste(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         if self.use_system_clipboard:
             try:
                 self.clipboard = self.system_paste()
@@ -360,6 +368,7 @@ class TextInput(_TextArea, inherit_bindings=False):
             self.post_message(Paste(self.clipboard))
 
     def action_select_word(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         prev = self._get_character_before_cursor()
         next = self._get_character_at_cursor()
         at_start_of_word = self._word_pattern.match(prev) is None
@@ -374,12 +383,14 @@ class TextInput(_TextArea, inherit_bindings=False):
             self.action_cursor_word_right(select=True)
 
     def action_scroll_one(self, direction: str = "down") -> None:
+        self.post_message(TextAreaHideCompletionList())
         if direction == "down":
             self.scroll_relative(y=1, animate=False)
         elif direction == "up":
             self.scroll_relative(y=-1, animate=False)
 
     def action_toggle_comment(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         if self.inline_comment_marker:
             lines, first, last = self._get_selected_lines()
             stripped_lines = [line.lstrip() for line in lines]
@@ -419,6 +430,7 @@ class TextInput(_TextArea, inherit_bindings=False):
                         )
 
     def action_undo(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         self._create_undo_snapshot()
         if len(self.undo_stack) > 1:
             # we just took a snapshot, so the current state is
@@ -430,6 +442,7 @@ class TextInput(_TextArea, inherit_bindings=False):
             self.selection = prev_state.selection
 
     def action_redo(self) -> None:
+        self.post_message(TextAreaHideCompletionList())
         if self.redo_stack:
             state = self.redo_stack.pop()
             self.undo_stack.append(state)
@@ -486,6 +499,154 @@ class TextInput(_TextArea, inherit_bindings=False):
         return self.get_text_range(
             start=self.get_cursor_left_location(), end=self.cursor_location
         )
+
+    def _get_word_before_cursor(self, event: events.Key | None = None) -> str:
+        lno = self.cursor_location[0]
+        line = self.get_text_range(start=(lno, 0), end=self.cursor_location)
+
+        if event is not None and event.key == "backspace":
+            if len(line) > 1:
+                search_string = line[:-1]
+            else:
+                search_string = ""
+        elif event is not None and event.character is not None:
+            search_string = f"{line}{event.character}"
+        else:
+            search_string = line
+
+        if self.completer_active == "path":
+            pattern = PATH_PROG
+        elif self.completer_active == "member":
+            pattern = MEMBER_PROG
+        else:
+            pattern = WORD_PROG
+
+        match = pattern.match(search_string[::-1])
+        if match:
+            return match.group(0)[::-1]
+        else:
+            return ""
+
+    def _handle_backspace(self, event: events.Key) -> None:
+        if self.completer_active is not None:
+            current_word = self._get_word_before_cursor(event)
+            if current_word:
+                self.post_message(self.ShowCompletionList(prefix=current_word))
+            else:
+                self.post_message(TextAreaHideCompletionList())
+
+    def _handle_enter(self, event: events.Key) -> None:
+        event.stop()
+        event.prevent_default()
+        if self.completer_active is not None:
+            self.post_message(self.CompletionListKey(event))
+            return
+        nl = self.document.newline
+        first, last = sorted([*self.selection])
+        indent = self._get_indent_level_of_line(index=first[0])
+        self.selection = Selection(start=first, end=first)
+        char_before = self._get_character_before_cursor()
+        if char_before in BRACKETS:
+            if self.indent_type == "tabs":
+                new_indent = indent + 1
+                indent_char = "\t"
+            else:
+                new_indent = indent + self.indent_width - (indent % self.indent_width)
+                indent_char = " "
+            self.replace(f"{nl}{indent_char*new_indent}", first, last)
+            char_at = self._get_character_at_cursor()
+            if char_at == BRACKETS[char_before]:
+                loc = self.selection
+                self.insert(f"{nl}{indent * indent_char}")
+                self.selection = loc
+        else:
+            indent_char = "\t" if self.indent_type == "tabs" else " "
+            self.insert(f"{nl}{indent * indent_char}", location=self.cursor_location)
+
+    def _handle_quote_or_bracket(self, event: events.Key) -> None:
+        event.stop()
+        event.prevent_default()
+        if self.completer_active != "member":
+            self.post_message(TextAreaHideCompletionList())
+        else:
+            prefix = self._get_word_before_cursor(event=event)
+            self.post_message(self.ShowCompletionList(prefix=prefix))
+        assert event.character is not None
+        if self.selection.start == self.selection.end:
+            self._insert_closed_character_at_cursor(event.character)
+        elif event.key in (
+            "right_parenthesis",
+            "right_square_bracket",
+            "right_curly_bracket",
+        ):
+            self.replace(event.character, *self.selection)
+        else:
+            self._insert_characters_around_selection(event.character)
+
+    def _handle_shift_tab(self, event: events.Key) -> None:
+        event.stop()
+        event.prevent_default()
+        if self.completer_active is not None:
+            self.post_message(self.CompletionListKey(event))
+            return
+        self._indent_selection(kind="dedent")
+
+    def _handle_separator(self, event: events.Key) -> None:
+        event.stop()
+        if self.completer_active != "path":
+            self.completer_active = "member"
+        prefix = self._get_word_before_cursor(event)
+        self.post_message(self.ShowCompletionList(prefix=prefix))
+
+    def _handle_slash(self, event: events.Key) -> None:
+        event.stop()
+        self.completer_active = "path"
+        prefix = self._get_word_before_cursor(event)
+        self.post_message(self.ShowCompletionList(prefix=prefix))
+
+    def _handle_tab(self, event: events.Key) -> None:
+        event.stop()
+        event.prevent_default()
+        if self.completer_active is not None:
+            self.post_message(self.CompletionListKey(event))
+            return
+        first, last = sorted([*self.selection])
+        # in some cases, selections are replaced with indent
+        if first[0] == last[0] and (
+            first[1] == last[1]
+            or first[1] != 0
+            or last[1] != len(self.document.get_line(last[0])) - 1
+        ):
+            indent_char = "\t" if self.indent_type == "tabs" else " "
+            indent_width = 1 if self.indent_type == "tabs" else self.indent_width
+            self.replace(
+                f"{indent_char*(indent_width - first[1] % indent_width)}",
+                first,
+                last,
+                maintain_selection_offset=False,
+            )
+        # usually, selected lines are prepended with four-ish spaces
+        else:
+            self._indent_selection(kind="indent")
+
+    def _handle_up_down(self, event: events.Key) -> None:
+        if self.completer_active is not None:
+            event.stop()
+            event.prevent_default()
+            self.post_message(self.CompletionListKey(event))
+
+    def _handle_printable_character(self, event: events.Key) -> None:
+        assert event.character is not None, "Error! Printable key with no character."
+        if self.completer_active is None:
+            if WORD_PROG.match(event.character) is not None:
+                self.completer_active = "word"
+            else:
+                return
+        current_word = self._get_word_before_cursor(event)
+        if current_word:
+            self.post_message(self.ShowCompletionList(prefix=current_word))
+        else:
+            self.post_message(TextAreaHideCompletionList())
 
     def _indent_selection(self, kind: Literal["indent", "dedent"]) -> None:
         rounder, offset = (ceil, -1) if kind == "dedent" else (floor, 1)
@@ -576,7 +737,7 @@ class TextInput(_TextArea, inherit_bindings=False):
         ) and (
             self.cursor_at_start_of_line
             or prev_char.isspace()
-            or NON_WORD.match(prev_char) is not None
+            or NON_WORD_CHAR_PROG.match(prev_char) is not None
         ):
             return True
         return False
@@ -639,6 +800,12 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         language: Union[str, None] = None,
         theme: str = "monokai",
         use_system_clipboard: bool = True,
+        path_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
+        | None = path_completer,
+        member_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
+        | None = None,
+        word_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
+        | None = None,
     ) -> None:
         """
         Initializes an instance of a TextArea.
@@ -657,6 +824,9 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self._theme = theme
         self.theme_colors = WidgetColors.from_theme(theme)
         self.use_system_clipboard = use_system_clipboard
+        self.path_completer = path_completer
+        self.member_completer = member_completer
+        self.word_completer = word_completer
 
     @property
     def text(self) -> str:
@@ -766,6 +936,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def compose(self) -> ComposeResult:
         with TextContainer():
             yield TextInput(language=self._language)
+            yield CompletionList()
         with FooterContainer():
             yield Label("", id="validation_label")
 
@@ -773,6 +944,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.styles.background = self.theme_colors.bgcolor
         self.text_container = self.query_one(TextContainer)
         self.text_input = self.query_one(TextInput)
+        self.completion_list = self.query_one(CompletionList)
         self.footer = self.query_one(FooterContainer)
         self.theme = self._theme
 
@@ -781,6 +953,49 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def on_click(self) -> None:
         self.text_input.focus()
+
+    def on_text_area_hide_completion_list(
+        self, event: TextAreaHideCompletionList
+    ) -> None:
+        event.stop()
+        self.completion_list.open = False
+        self.text_input.completer_active = None
+
+    def on_text_area_selection_changed(self, event: TextInput.SelectionChanged) -> None:
+        region_x, region_y, _, _ = self.text_input.content_region
+        self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
+            region_x,
+            region_y,
+        )
+
+    def on_text_input_show_completion_list(
+        self, event: TextInput.ShowCompletionList
+    ) -> None:
+        event.stop()
+        region_x, region_y, _, _ = self.text_input.content_region
+        self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
+            region_x,
+            region_y,
+        )
+        if self.text_input.completer_active == "path":
+            self.completion_list.show_completions(event.prefix, self.path_completer)
+        elif self.text_input.completer_active == "member":
+            self.completion_list.show_completions(event.prefix, self.member_completer)
+        elif self.text_input.completer_active == "word":
+            self.completion_list.show_completions(event.prefix, self.word_completer)
+
+    def on_text_input_completion_list_key(
+        self, event: TextInput.CompletionListKey
+    ) -> None:
+        event.stop()
+        self.completion_list.process_keypress(event.key)
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        event.stop()
+        value = getattr(event.option, "value", None) or str(event.option.prompt)
+        self.text_input.replace_current_word(value)
+        self.completion_list.open = False
+        self.text_input.completer_active = None
 
     def watch_theme(self, theme: str) -> None:
         try:
@@ -815,6 +1030,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def on_cancel_path_input(self) -> None:
         self._clear_footer_input()
+        self.text_input.focus()
 
     def _mount_footer_input(self, name: str) -> None:
         if name == "open":
@@ -857,6 +1073,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         expanded_path = expanduser(message.input.value)
         if message.input.id == "textarea__save_input":
+            message.stop()
             try:
                 with open(expanded_path, "w") as f:
                     f.write(self.text)
@@ -873,6 +1090,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             else:
                 self.post_message(TextAreaSaved(path=expanded_path))
         elif message.input.id == "textarea__open_input":
+            message.stop()
             try:
                 with open(expanded_path, "r") as f:
                     contents = f.read()
