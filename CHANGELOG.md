@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Fixes an issue where the autocomplete list was displayed in the wrong location after pressing backspace.
+
 ## [0.9.0] - 2023-12-12
 
 -   TextArea now provides auto-complete. By default, it will auto-complete paths; to auto-complete words or

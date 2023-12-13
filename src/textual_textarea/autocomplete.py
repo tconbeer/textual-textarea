@@ -7,6 +7,7 @@ from rich.text import Text
 from textual import work
 from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
+from textual.geometry import Size
 from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import OptionList
@@ -52,7 +53,6 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     INNER_CONTENT_WIDTH = 37  # should be 3 less than width for scroll bar.
     open: Reactive[bool] = reactive(False)
     cursor_offset: tuple[int, int] = (0, 0)
-    prefix: str = ""
     additional_x_offset: int = 0
 
     def __init__(
@@ -69,7 +69,6 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
     def on_completion_list_completions_ready(self, event: CompletionsReady) -> None:
         event.stop()
-        self.prefix = event.prefix
         self.clear_options()
 
         # if the completions' prompts are wider than the widget,
@@ -80,32 +79,66 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             truncate_amount = min(
                 max_length - self.INNER_CONTENT_WIDTH, len(event.prefix) - 2
             )
-            self.additional_x_offset = truncate_amount - 1
+            additional_x_offset = truncate_amount - 1
             items = [
                 Completion(prompt=f"…{prompt[truncate_amount:]}", value=item[1])
                 for prompt, item in zip(prompts, event.items)
             ]
         else:
-            self.additional_x_offset = 0
+            additional_x_offset = 0
             items = [Completion(prompt=item[0], value=item[1]) for item in event.items]
+
+        # set x offset if not already open.
+        if not self.open:
+            try:
+                x_offset = self._get_x_offset(
+                    prefix_length=len(event.prefix),
+                    additional_x_offset=additional_x_offset,
+                    cursor_x=self.cursor_offset[0],
+                    container_width=self._parent_container_size.width,
+                    width=self._width,
+                )
+            except ValueError:
+                x_offset = 0
+                self.styles.width = self._parent_container_size.width
+            self.styles.offset = ScalarOffset.from_offset(
+                (x_offset, int(self.styles.offset.y.value))
+            )
+        # adjust x offset if we have to due to truncation
+        elif additional_x_offset != self.additional_x_offset:
+            self.styles.offset = ScalarOffset.from_offset(
+                (
+                    min(
+                        int(self.styles.offset.x.value)
+                        + (additional_x_offset - self.additional_x_offset),
+                        self._parent_container_size.width - self._width,
+                    ),
+                    int(self.styles.offset.y.value),
+                )
+            )
 
         self.add_options(items=items)
         self.action_first()
+        self.additional_x_offset = additional_x_offset
         self.open = True
 
     def watch_open(self, open: bool) -> None:
-        if open:
-            self.add_class("open")
-            self.styles.max_height = Scalar(
-                value=8.0, unit=Unit.CELLS, percent_unit=Unit.PERCENT
-            )
-        else:
+        if not open:
             self.remove_class("open")
+            self.additional_x_offset = 0
+            return
+
+        self.add_class("open")
+        self.styles.max_height = Scalar(
+            value=8.0, unit=Unit.CELLS, percent_unit=Unit.PERCENT
+        )
 
     def on_resize(self, event: Resize) -> None:
         try:
-            self.styles.offset = self._get_list_offset(
-                width=event.size.width, height=event.size.height
+            y_offset = self._get_y_offset(
+                cursor_y=self.cursor_offset[1],
+                height=event.size.height,
+                container_height=self._parent_container_size.height,
             )
         except ValueError:
             if self.styles.max_height is not None and self.styles.max_height.value > 1:
@@ -116,6 +149,10 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
                 )
             else:
                 self.post_message(TextAreaHideCompletionList())
+        else:
+            self.styles.offset = ScalarOffset.from_offset(
+                (int(self.styles.offset.x.value), y_offset)
+            )
 
     @work(thread=True, exclusive=True, group="completers")
     def show_completions(
@@ -141,18 +178,36 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         elif event.key == "pagedown":
             self.action_page_down()  # type: ignore
 
-    def _get_list_offset(self, width: int, height: int) -> ScalarOffset:
-        prefix_length = len(self.prefix)
-        cursor_x, cursor_y = self.cursor_offset
-        container_size = getattr(
-            self.parent, "container_size", self.screen.container_size
-        )
+    @property
+    def _parent_container_size(self) -> Size:
+        return getattr(self.parent, "container_size", self.screen.container_size)
 
-        x = cursor_x - prefix_length + self.additional_x_offset
-        max_x = container_size.width - width
+    @property
+    def _width(self) -> int:
+        if self.styles.width and self.styles.width.unit == Unit.CELLS:
+            return int(self.styles.width.value)
+        else:
+            return self.outer_size.width
 
+    @staticmethod
+    def _get_x_offset(
+        prefix_length: int,
+        additional_x_offset: int,
+        cursor_x: int,
+        container_width: int,
+        width: int,
+    ) -> int:
+        x = cursor_x - prefix_length + additional_x_offset
+        max_x = container_width - width
+        if max_x < 0:
+            raise ValueError("doesn't fit")
+
+        return min(x, max_x)
+
+    @staticmethod
+    def _get_y_offset(cursor_y: int, height: int, container_height: int) -> int:
         fits_above = cursor_y + 1 > height
-        fits_below = container_size.height - cursor_y > height
+        fits_below = container_height - cursor_y > height
         if fits_below:
             y = cursor_y + 1
         elif fits_above:
@@ -160,4 +215,4 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         else:
             raise ValueError("Doesn't fit.")
 
-        return ScalarOffset.from_offset((min(x, max_x), y))
+        return y
