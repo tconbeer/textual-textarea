@@ -6,6 +6,10 @@ from textual.widgets import Placeholder
 from textual_textarea import TextArea
 
 
+class FocusablePlaceholder(Placeholder, can_focus=True):
+    pass
+
+
 class TextApp(App, inherit_bindings=False):
     CSS = """
     TextArea {
@@ -21,7 +25,7 @@ class TextApp(App, inherit_bindings=False):
             language = sys.argv[1]
         except IndexError:
             language = "python"
-        yield Placeholder()
+        yield FocusablePlaceholder()
         yield TextArea(
             language=language,
             theme="nord-darker",

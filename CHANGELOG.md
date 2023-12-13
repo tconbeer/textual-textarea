@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Hides the cursor and autocomplete list when the TextArea widget is not focussed. ([#177](https://github.com/tconbeer/textual-textarea/issues/177)).
+
 ## [0.9.1] - 2023-12-13
 
 -   Fixes an issue where the autocomplete list was displayed in the wrong location after pressing backspace.

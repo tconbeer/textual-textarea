@@ -216,7 +216,10 @@ class TextInput(_TextArea, inherit_bindings=False):
             self.system_copy, self.system_paste = pyperclip.determine_clipboard()
         self._create_undo_snapshot()
 
-    def on_blur(self) -> None:
+    def on_blur(self, event: events.Blur) -> None:
+        event.prevent_default()
+        self._pause_blink(visible=False)
+        self.post_message(TextAreaHideCompletionList())
         self._create_undo_snapshot()
         self.undo_timer.pause()
 
