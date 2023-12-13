@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.9.2] - 2023-12-13
+
 -   Hides the cursor and autocomplete list when the TextArea widget is not focussed. ([#177](https://github.com/tconbeer/textual-textarea/issues/177)).
 
 ## [0.9.1] - 2023-12-13
@@ -194,7 +196,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.9.1...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.9.2...HEAD
+
+[0.9.2]: https://github.com/tconbeer/textual-textarea/compare/0.9.1...0.9.2
 
 [0.9.1]: https://github.com/tconbeer/textual-textarea/compare/0.9.0...0.9.1
 
