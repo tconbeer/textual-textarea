@@ -4,6 +4,7 @@ import stat
 from pathlib import Path
 
 from rich.highlighter import Highlighter
+from textual.binding import Binding
 from textual.message import Message
 from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
@@ -83,8 +84,8 @@ class PathValidator(Validator):
 
 class PathInput(Input):
     BINDINGS = [
-        ("escape", "cancel", "Cancel"),
-        ("tab", "complete", "Accept Completion"),
+        Binding("escape", "cancel", "Cancel", show=False),
+        Binding("tab", "complete", "Accept Completion", show=False),
     ]
 
     def __init__(
