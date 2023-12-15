@@ -75,10 +75,14 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         # we have to trunctate them
         prompts = [Text.from_markup(item[0]) for item in event.items]
         max_length = max(map(lambda x: x.cell_len, prompts))
-        if max_length > self.INNER_CONTENT_WIDTH:
-            truncate_amount = min(
-                max_length - self.INNER_CONTENT_WIDTH, len(event.prefix) - 2
-            )
+        truncate_amount = max(
+            0,
+            min(
+                max_length - self.INNER_CONTENT_WIDTH,
+                len(event.prefix) - 2,
+            ),
+        )
+        if truncate_amount > 0:
             additional_x_offset = truncate_amount - 1
             items = [
                 Completion(prompt=f"…{prompt[truncate_amount:]}", value=item[1])
