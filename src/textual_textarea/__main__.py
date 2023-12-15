@@ -36,6 +36,12 @@ class TextApp(App, inherit_bindings=False):
     def on_mount(self) -> None:
         ta = self.query_one("#ta", expect_type=TextArea)
         ta.focus()
+        ta.word_completer = lambda x: [
+            (
+                "supercalifragilisticexpialadociousASDFASDFASFASDF FX",
+                "supercalifragilisticexpialadocious",
+            )
+        ]
 
 
 app = TextApp()

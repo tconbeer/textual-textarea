@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Fixes an issue where very long completions with short prefixes were truncated improperly.
+
 ## [0.9.2] - 2023-12-13
 
 -   Hides the cursor and autocomplete list when the TextArea widget is not focussed. ([#177](https://github.com/tconbeer/textual-textarea/issues/177)).
