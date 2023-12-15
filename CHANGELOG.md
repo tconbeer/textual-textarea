@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   No longer show bindings in the footer when the open or save inputs are focussed.
+
 ## [0.9.3] - 2023-12-15
 
 -   Fixes an issue where very long completions with short prefixes were truncated improperly.
