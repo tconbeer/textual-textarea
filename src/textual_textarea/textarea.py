@@ -227,6 +227,15 @@ class TextInput(_TextArea, inherit_bindings=False):
         self.undo_timer.reset()
 
     def on_key(self, event: events.Key) -> None:
+        # Naked shift or ctrl keys on Windows get sent as NUL chars; Textual
+        # interprets these as `ctrl+@` presses, which is inconsistent with
+        # other platforms. We ignore these presses.
+        # https://github.com/Textualize/textual/issues/872
+        if event.key == "ctrl+@":
+            event.stop()
+            event.prevent_default()
+            return
+
         self.undo_timer.reset()
         if event.key in (
             "apostrophe",
