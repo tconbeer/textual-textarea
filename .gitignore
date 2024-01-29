@@ -1,6 +1,7 @@
 *.db
 *.db.wal
 *.sql
+.profiles
 Pipfile
 
 # Byte-compiled / optimized / DLL files

@@ -5,11 +5,11 @@ from collections import deque
 from dataclasses import dataclass
 from math import ceil, floor
 from os.path import expanduser
-from typing import Callable, Deque, List, Literal, Sequence, Tuple, Union
+from typing import Any, Callable, Deque, List, Literal, Sequence, Tuple, Union
 
 import pyperclip
 from rich.console import RenderableType
-from textual import events
+from textual import events, on, work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
@@ -176,6 +176,14 @@ class TextInput(_TextArea, inherit_bindings=False):
             super().__init__()
             self.key = key
 
+    class ClipboardReady(Message):
+        def __init__(
+            self, copy: Callable[[Any], None], paste: Callable[[], str]
+        ) -> None:
+            super().__init__()
+            self.copy = copy
+            self.paste = paste
+
     def __init__(
         self,
         text: str = "",
@@ -204,6 +212,8 @@ class TextInput(_TextArea, inherit_bindings=False):
         self.double_click_location: Location | None = None
         self.double_click_timer: Timer | None = None
         self.consecutive_clicks: int = 0
+        self.system_copy: Callable[[Any], None] | None = None
+        self.system_paste: Callable[[], str] | None = None
 
     def on_mount(self) -> None:
         self.undo_timer = self.set_interval(
@@ -212,8 +222,7 @@ class TextInput(_TextArea, inherit_bindings=False):
             name="undo_timer",
             pause=not self.has_focus,
         )
-        if self.use_system_clipboard:
-            self.system_copy, self.system_paste = pyperclip.determine_clipboard()
+        self._determine_clipboard()
         self._create_undo_snapshot()
 
     def on_blur(self, event: events.Blur) -> None:
@@ -314,6 +323,11 @@ class TextInput(_TextArea, inherit_bindings=False):
         self._create_undo_snapshot()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
 
+    @on(ClipboardReady)
+    def _set_clipboard(self, message: ClipboardReady) -> None:
+        self.system_copy = message.copy
+        self.system_paste = message.paste
+
     def watch_language(self, language: str) -> None:
         self.inline_comment_marker = INLINE_MARKERS.get(language)
 
@@ -326,6 +340,12 @@ class TextInput(_TextArea, inherit_bindings=False):
             end=self.cursor_location,
             maintain_selection_offset=False,
         )
+
+    @work(thread=True)
+    def _determine_clipboard(self) -> None:
+        if self.use_system_clipboard:
+            copy, paste = pyperclip.determine_clipboard()
+            self.post_message(self.ClipboardReady(copy=copy, paste=paste))
 
     def action_copy(self) -> None:
         self._copy_selection()
@@ -369,7 +389,7 @@ class TextInput(_TextArea, inherit_bindings=False):
 
     def action_paste(self) -> None:
         self.post_message(TextAreaHideCompletionList())
-        if self.use_system_clipboard:
+        if self.use_system_clipboard and self.system_paste is not None:
             try:
                 self.clipboard = self.system_paste()
             except pyperclip.PyperclipException:
@@ -475,7 +495,7 @@ class TextInput(_TextArea, inherit_bindings=False):
                 self.get_cursor_line_end_location(),
             )
             self.clipboard = f"{whole_line}{self.document.newline}"
-        if self.use_system_clipboard:
+        if self.use_system_clipboard and self.system_copy is not None:
             try:
                 self.system_copy(self.clipboard)
             except pyperclip.PyperclipException:

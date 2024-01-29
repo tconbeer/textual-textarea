@@ -22,6 +22,7 @@ pyperclip = "^1.8.2"
 pre-commit = "^3.3.1"
 textual = "0.41.0"
 textual-dev = "^1.2.1"
+pyinstrument = "^4.6.2"
 
 [tool.poetry.group.static.dependencies]
 black = "^23.3.0"
