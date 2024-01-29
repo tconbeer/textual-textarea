@@ -811,6 +811,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         disabled: bool = False,
         language: Union[str, None] = None,
         theme: str = "monokai",
+        text: str = "",
         use_system_clipboard: bool = True,
         path_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
         | None = path_completer,
@@ -834,6 +835,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         )
         self._language = language
         self._theme = theme
+        self._initial_text = text
         self.theme_colors = WidgetColors.from_theme(theme)
         self.use_system_clipboard = use_system_clipboard
         self.path_completer = path_completer
@@ -947,7 +949,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput(language=self._language)
+            yield TextInput(language=self._language, text=self._initial_text)
             yield CompletionList()
         with FooterContainer():
             yield Label("", id="validation_label")

@@ -40,7 +40,7 @@ from textual.app import App, ComposeResult
 
 class TextApp(App, inherit_bindings=False):
     def compose(self) -> ComposeResult:
-        yield TextArea(language="python", theme="nord-darker", id="ta")
+        yield TextArea(text="hi", language="python", theme="nord-darker", id="ta")
 
     def on_mount(self) -> None:
         ta = self.query_one("#id", expect_type=TextArea)
