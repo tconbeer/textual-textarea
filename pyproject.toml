@@ -17,7 +17,7 @@ build-backend = "poetry.core.masonry.api"
 python = "^3.8"
 textual = { version = ">=0.41.0, <1.0.0", extras = ["syntax"] }
 pyperclip = "^1.8.2"
-tree-sitter-languages = "<1.10.0" # 1.10 unavail on windows, macos on 1/30/24
+tree-sitter-languages = "<1.11.0" # 1.10 unavail on windows, macos on 1/30/24
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
