@@ -17,8 +17,7 @@ from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.timer import Timer
 from textual.widget import Widget
-from textual.widgets import Input, Label, OptionList
-from textual.widgets import TextArea as _TextArea
+from textual.widgets import Input, Label, OptionList, TextArea
 from textual.widgets.text_area import Location, Selection
 
 from textual_textarea.autocomplete import CompletionList
@@ -79,7 +78,7 @@ class InputState:
             return [f"{line} " for line in self.text.splitlines(keepends=False)]
 
 
-class TextAreaPlus(_TextArea, inherit_bindings=False):
+class TextAreaPlus(TextArea, inherit_bindings=False):
     DEFAULT_CSS = """
     TextAreaPlus {
         width: 1fr;
