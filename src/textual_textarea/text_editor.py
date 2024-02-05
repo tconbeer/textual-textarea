@@ -1041,7 +1041,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.text_input.focus()
 
     @on(Input.Changed)
-    def on_input_changed(self, message: Input.Changed) -> None:
+    def update_validation_label(self, message: Input.Changed) -> None:
         if message.input.id in ("textarea__save_input", "textarea__open_input"):
             label = self.footer.query_one(Label)
             if message.validation_result and not message.validation_result.is_valid:

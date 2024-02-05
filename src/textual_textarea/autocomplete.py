@@ -4,7 +4,7 @@ from typing import Callable
 
 from rich.console import RenderableType
 from rich.text import Text
-from textual import work
+from textual import on, work
 from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
 from textual.geometry import Size
@@ -67,7 +67,8 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             *content, name=name, id=id, classes=classes, disabled=disabled, wrap=False
         )
 
-    def on_completion_list_completions_ready(self, event: CompletionsReady) -> None:
+    @on(CompletionsReady)
+    def populate_and_position_list(self, event: CompletionsReady) -> None:
         event.stop()
         self.clear_options()
 
