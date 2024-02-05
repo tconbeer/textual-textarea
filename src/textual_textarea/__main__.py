@@ -3,7 +3,7 @@ import sys
 from textual.app import App, ComposeResult
 from textual.widgets import Placeholder
 
-from textual_textarea import TextArea
+from textual_textarea import TextEditor
 
 
 class FocusablePlaceholder(Placeholder, can_focus=True):
@@ -12,7 +12,7 @@ class FocusablePlaceholder(Placeholder, can_focus=True):
 
 class TextApp(App, inherit_bindings=False):
     CSS = """
-    TextArea {
+    TextEditor {
         height: 1fr;
     }
     Placeholder {
@@ -26,17 +26,17 @@ class TextApp(App, inherit_bindings=False):
         except IndexError:
             language = "python"
         yield FocusablePlaceholder()
-        yield TextArea(
+        self.editor = TextEditor(
             language=language,
             theme="nord-darker",
             use_system_clipboard=True,
             id="ta",
         )
+        yield self.editor
 
     def on_mount(self) -> None:
-        ta = self.query_one("#ta", expect_type=TextArea)
-        ta.focus()
-        ta.word_completer = lambda x: [
+        self.editor.focus()
+        self.editor.word_completer = lambda x: [
             (
                 "supercalifragilisticexpialadociousASDFASDFASFASDF FX",
                 "supercalifragilisticexpialadocious",

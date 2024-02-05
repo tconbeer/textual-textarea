@@ -2,7 +2,7 @@ from typing import List, Union
 
 import pytest
 from textual.app import App
-from textual_textarea import TextArea
+from textual_textarea import TextEditor
 from textual_textarea.key_handlers import Cursor
 from textual_textarea.serde import deserialize_lines, serialize_lines
 
@@ -324,7 +324,7 @@ async def test_keys(
         expected_lines = lines
 
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = serialize_lines(lines)
         ta.cursor = cursor
         ta.selection_anchor = anchor
@@ -360,7 +360,7 @@ async def test_copy_paste(
             return raw
 
     async with app_all_clipboards.run_test() as pilot:
-        ta = app_all_clipboards.query_one("#ta", expect_type=TextArea)
+        ta = app_all_clipboards.query_one("#ta", expect_type=TextEditor)
         ti = ta.text_input
         ta.text = original_text
         ta.cursor = starting_cursor
@@ -413,7 +413,7 @@ async def test_copy_paste(
 @pytest.mark.asyncio
 async def test_undo_redo(app: App) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ti = ta.text_input
         assert ti
         assert ti.has_focus
@@ -511,7 +511,7 @@ async def test_insert_text(
     expected_text: str,
 ) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = start_text
         ta.cursor = cursor
         ta.selection_anchor = selection
@@ -526,7 +526,7 @@ async def test_insert_text(
 @pytest.mark.asyncio
 async def test_toggle_comment(app: App) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "one\ntwo\n\nthree"
         ta.cursor = Cursor(0, 0)
         await pilot.pause()

@@ -80,9 +80,9 @@ class InputState:
             return [f"{line} " for line in self.text.splitlines(keepends=False)]
 
 
-class TextInput(_TextArea, inherit_bindings=False):
+class TextAreaPlus(_TextArea, inherit_bindings=False):
     DEFAULT_CSS = """
-    TextInput {
+    TextAreaPlus {
         width: 1fr;
         height: 1fr;
         layer: main;
@@ -793,12 +793,12 @@ class TextInput(_TextArea, inherit_bindings=False):
         return lines, first, last
 
 
-class TextArea(Widget, can_focus=True, can_focus_children=False):
+class TextEditor(Widget, can_focus=True, can_focus_children=False):
     """
     A Widget that presents a feature-rich, multiline text editor interface.
 
     Attributes:
-        text (str): The contents of the TextArea
+        text (str): The contents of the TextEditor
         language (str): Must be the short name of a Pygments lexer
             (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
         theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
@@ -866,7 +866,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def text(self) -> str:
         """
         Returns:
-            (str) The contents of the TextArea.
+            (str) The contents of the TextEditor.
         """
         return self.text_input.text
 
@@ -875,7 +875,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         Args:
             contents (str): A string (optionally containing newlines) to
-                set the contents of the TextArea equal to.
+                set the contents of the TextEditor equal to.
         """
         self.text_input.move_cursor((0, 0))
         self.text_input.text = contents
@@ -884,7 +884,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def selected_text(self) -> str:
         """
         Returns:
-            str: The contents of the TextArea between the selection
+            str: The contents of the TextEditor between the selection
             anchor and the cursor. Returns an empty string if the
             selection anchor is not set.
         """
@@ -894,7 +894,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def cursor(self) -> Cursor:
         """
         Returns
-            Cursor: The location of the cursor in the TextInput
+            Cursor: The location of the cursor in the TextEditor
         """
         return Cursor(*self.text_input.cursor_location)
 
@@ -911,7 +911,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def selection_anchor(self) -> Union[Cursor, None]:
         """
         Returns
-            Cursor: The location of the selection anchor in the TextInput
+            Cursor: The location of the selection anchor in the TextEditor
         """
         if self.text_input.selected_text:
             return Cursor(
@@ -969,7 +969,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput(language=self._language, text=self._initial_text)
+            yield TextAreaPlus(language=self._language, text=self._initial_text)
             yield CompletionList()
         with FooterContainer():
             yield Label("", id="validation_label")
@@ -977,7 +977,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
         self.text_container = self.query_one(TextContainer)
-        self.text_input = self.query_one(TextInput)
+        self.text_input = self.query_one(TextAreaPlus)
         self.completion_list = self.query_one(CompletionList)
         self.footer = self.query_one(FooterContainer)
         self.theme = self._theme
@@ -988,22 +988,25 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def on_click(self) -> None:
         self.text_input.focus()
 
-    def on_text_area_hide_completion_list(
-        self, event: TextAreaHideCompletionList
-    ) -> None:
+    @on(TextAreaHideCompletionList)
+    def hide_completion_list(self, event: TextAreaHideCompletionList) -> None:
         event.stop()
         self.completion_list.open = False
         self.text_input.completer_active = None
 
-    def on_text_area_selection_changed(self, event: TextInput.SelectionChanged) -> None:
+    @on(TextAreaPlus.SelectionChanged)
+    def update_completion_list_offset(
+        self, event: TextAreaPlus.SelectionChanged
+    ) -> None:
         region_x, region_y, _, _ = self.text_input.content_region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
             region_y,
         )
 
-    def on_text_input_show_completion_list(
-        self, event: TextInput.ShowCompletionList
+    @on(TextAreaPlus.ShowCompletionList)
+    def update_completers_and_completion_list_offset(
+        self, event: TextAreaPlus.ShowCompletionList
     ) -> None:
         event.stop()
         region_x, region_y, _, _ = self.text_input.content_region
@@ -1018,13 +1021,15 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         elif self.text_input.completer_active == "word":
             self.completion_list.show_completions(event.prefix, self.word_completer)
 
-    def on_text_input_completion_list_key(
-        self, event: TextInput.CompletionListKey
+    @on(TextAreaPlus.CompletionListKey)
+    def forward_keypress_to_completion_list(
+        self, event: TextAreaPlus.CompletionListKey
     ) -> None:
         event.stop()
         self.completion_list.process_keypress(event.key)
 
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+    @on(OptionList.OptionSelected)
+    def insert_completion(self, event: OptionList.OptionSelected) -> None:
         event.stop()
         value = getattr(event.option, "value", None) or str(event.option.prompt)
         self.text_input.replace_current_word(value)
@@ -1085,7 +1090,8 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         self.footer.mount(input)
         input.focus()
 
-    def on_text_area_scroll_one(self, event: TextAreaScrollOne) -> None:
+    @on(TextAreaScrollOne)
+    def scroll_text_container(self, event: TextAreaScrollOne) -> None:
         event.stop()
         offset = 1 if event.direction == "down" else -1
         self.text_container.scroll_to(
@@ -1093,6 +1099,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             self.text_container.window_region.y + offset,
         )
 
+    @on(Input.Changed)
     def on_input_changed(self, message: Input.Changed) -> None:
         if message.input.id in ("textarea__save_input", "textarea__open_input"):
             label = self.footer.query_one(Label)
@@ -1101,44 +1108,45 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             else:
                 label.update("")
 
-    def on_input_submitted(self, message: Input.Submitted) -> None:
+    @on(Input.Submitted, "#textarea__save_input")
+    def save_file(self, message: Input.Submitted) -> None:
         """
         Handle the submit event for the Save and Open modals.
         """
+        message.stop()
         expanded_path = expanduser(message.input.value)
-        if message.input.id == "textarea__save_input":
-            message.stop()
-            try:
-                with open(expanded_path, "w") as f:
-                    f.write(self.text)
-            except OSError as e:
-                self.app.push_screen(
-                    ErrorModal(
-                        title="Save File Error",
-                        header=(
-                            "There was an error when attempting to save your file:"
-                        ),
-                        error=e,
-                    )
+        try:
+            with open(expanded_path, "w") as f:
+                f.write(self.text)
+        except OSError as e:
+            self.app.push_screen(
+                ErrorModal(
+                    title="Save File Error",
+                    header=("There was an error when attempting to save your file:"),
+                    error=e,
                 )
-            else:
-                self.post_message(TextAreaSaved(path=expanded_path))
-        elif message.input.id == "textarea__open_input":
-            message.stop()
-            try:
-                with open(expanded_path, "r") as f:
-                    contents = f.read()
-            except OSError as e:
-                self.app.push_screen(
-                    ErrorModal(
-                        title="Open File Error",
-                        header=(
-                            "There was an error when attempting to open your file:"
-                        ),
-                        error=e,
-                    )
+            )
+        else:
+            self.post_message(TextAreaSaved(path=expanded_path))
+        self._clear_footer_input()
+        self.text_input.focus()
+
+    @on(Input.Submitted, "#textarea__open_input")
+    def open_file(self, message: Input.Submitted) -> None:
+        message.stop()
+        expanded_path = expanduser(message.input.value)
+        try:
+            with open(expanded_path, "r") as f:
+                contents = f.read()
+        except OSError as e:
+            self.app.push_screen(
+                ErrorModal(
+                    title="Open File Error",
+                    header=("There was an error when attempting to open your file:"),
+                    error=e,
                 )
-            else:
-                self.text = contents
+            )
+        else:
+            self.text = contents
         self._clear_footer_input()
         self.text_input.focus()
