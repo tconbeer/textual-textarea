@@ -1067,7 +1067,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         except Exception:
             pass
 
-    def on_cancel_path_input(self) -> None:
+    @on(PathInput.Cancelled)
+    def clear_footer(self) -> None:
         self._clear_footer_input()
         self.text_input.focus()
 
