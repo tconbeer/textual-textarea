@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 
 from textual.app import App, ComposeResult
@@ -36,12 +38,24 @@ class TextApp(App, inherit_bindings=False):
 
     def on_mount(self) -> None:
         self.editor.focus()
-        self.editor.word_completer = lambda x: [
-            (
-                "supercalifragilisticexpialadociousASDFASDFASFASDF FX",
+
+        def _completer(prefix: str) -> list[tuple[str, str]]:
+            words = [
+                "satisfy",
+                "season",
+                "second",
+                "seldom",
+                "select",
+                "self",
+                "separate",
+                "set",
+                "space",
+                "super",
                 "supercalifragilisticexpialadocious",
-            )
-        ]
+            ]
+            return [(w, w) for w in words if w.startswith(prefix)]
+
+        self.editor.word_completer = _completer
 
 
 app = TextApp()

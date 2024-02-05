@@ -31,7 +31,6 @@ from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaHideCompletionList,
     TextAreaSaved,
-    TextAreaScrollOne,
 )
 from textual_textarea.path_input import PathInput, path_completer
 
@@ -1036,69 +1035,10 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.completion_list.open = False
         self.text_input.completer_active = None
 
-    def watch_theme(self, theme: str) -> None:
-        try:
-            ti = self.text_input
-        except AttributeError:
-            return
-        if theme in ti.available_themes:
-            ti.theme = theme
-        else:
-            textarea_theme = text_area_theme_from_pygments_name(theme)
-            ti.register_theme(textarea_theme)
-            ti.theme = textarea_theme.name
-        self.theme_colors = WidgetColors.from_theme(theme)
-
-    def action_save(self) -> None:
-        self._clear_footer_input()
-        self._mount_footer_input("save")
-
-    def action_load(self) -> None:
-        self._clear_footer_input()
-        self._mount_footer_input("open")
-
-    def _clear_footer_input(self) -> None:
-        try:
-            self.footer.query_one(PathInput).remove()
-        except Exception:
-            pass
-        try:
-            self.footer.query_one(Label).update("")
-        except Exception:
-            pass
-
     @on(PathInput.Cancelled)
     def clear_footer(self) -> None:
         self._clear_footer_input()
         self.text_input.focus()
-
-    def _mount_footer_input(self, name: str) -> None:
-        if name == "open":
-            file_okay, dir_okay, must_exist = True, False, True
-        else:
-            file_okay, dir_okay, must_exist = True, False, False
-
-        input = PathInput(
-            id=f"textarea__{name}_input",
-            placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
-            file_okay=file_okay,
-            dir_okay=dir_okay,
-            must_exist=must_exist,
-        )
-        input.styles.background = self.theme_colors.bgcolor
-        input.styles.border = "round", self.theme_colors.contrast_text_color
-        input.styles.color = self.theme_colors.contrast_text_color
-        self.footer.mount(input)
-        input.focus()
-
-    @on(TextAreaScrollOne)
-    def scroll_text_container(self, event: TextAreaScrollOne) -> None:
-        event.stop()
-        offset = 1 if event.direction == "down" else -1
-        self.text_container.scroll_to(
-            self.text_container.window_region.x,
-            self.text_container.window_region.y + offset,
-        )
 
     @on(Input.Changed)
     def on_input_changed(self, message: Input.Changed) -> None:
@@ -1151,3 +1091,53 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             self.text = contents
         self._clear_footer_input()
         self.text_input.focus()
+
+    def watch_theme(self, theme: str) -> None:
+        try:
+            ti = self.text_input
+        except AttributeError:
+            return
+        if theme in ti.available_themes:
+            ti.theme = theme
+        else:
+            textarea_theme = text_area_theme_from_pygments_name(theme)
+            ti.register_theme(textarea_theme)
+            ti.theme = textarea_theme.name
+        self.theme_colors = WidgetColors.from_theme(theme)
+
+    def action_save(self) -> None:
+        self._clear_footer_input()
+        self._mount_footer_input("save")
+
+    def action_load(self) -> None:
+        self._clear_footer_input()
+        self._mount_footer_input("open")
+
+    def _clear_footer_input(self) -> None:
+        try:
+            self.footer.query_one(PathInput).remove()
+        except Exception:
+            pass
+        try:
+            self.footer.query_one(Label).update("")
+        except Exception:
+            pass
+
+    def _mount_footer_input(self, name: str) -> None:
+        if name == "open":
+            file_okay, dir_okay, must_exist = True, False, True
+        else:
+            file_okay, dir_okay, must_exist = True, False, False
+
+        input = PathInput(
+            id=f"textarea__{name}_input",
+            placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
+            file_okay=file_okay,
+            dir_okay=dir_okay,
+            must_exist=must_exist,
+        )
+        input.styles.background = self.theme_colors.bgcolor
+        input.styles.border = "round", self.theme_colors.contrast_text_color
+        input.styles.color = self.theme_colors.contrast_text_color
+        self.footer.mount(input)
+        input.focus()

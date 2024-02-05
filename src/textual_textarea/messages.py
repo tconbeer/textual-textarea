@@ -4,17 +4,6 @@ from typing import Union
 from textual.message import Message
 
 
-class TextAreaScrollOne(Message, bubble=True):
-    """
-    Posted to get parent container to scroll one in a direction
-    """
-
-    def __init__(self, direction: str) -> None:
-        super().__init__()
-        assert direction in ("up", "down")
-        self.direction = direction
-
-
 class TextAreaClipboardError(Message, bubble=True):
     """
     Posted when textarea cannot access the system clipboard
