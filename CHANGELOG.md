@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 -   Breaking change: Renames the main class from TextArea to TextEditor, to avoid naming conflicts with the built-in TextArea widget (which caused issues with selectors, CSS, etc.).
--   Breaking change: Replaces the `cursor` and `selection_anchor` API with `selection`. 
+-   Breaking change: Replaces the `cursor` and `selection_anchor` API with `selection`.
+-   Adds public APIs: `line_count`, `get_line`, `get_text_range`, `copy_to_clipboard`, `pause_blink`, and `restart_blink`.
 
 ## [0.10.0] - 2024-01-30
 

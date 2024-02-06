@@ -902,6 +902,37 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         self.text_input.language = language
 
+    @property
+    def line_count(self) -> int:
+        """
+        Returns the number of lines in the document.
+        """
+        return self.text_input.document.line_count
+
+    def get_line(self, index: int) -> str:
+        """
+        Returns the line with the given index from the document.
+
+        Args:
+            index: The index of the line in the document.
+
+        Returns:
+            The str instance representing the line.
+        """
+        return self.text_input.document.get_line(index=index)
+
+    def get_text_range(self, selection: Selection) -> str:
+        """
+        Get the text between a start and end location.
+
+        Args:
+            selection: The start and end locations
+
+        Returns:
+            The text between start and end.
+        """
+        return self.text_input.get_text_range(*selection)
+
     def insert_text_at_selection(self, text: str) -> None:
         """
         Inserts text at the current cursor position; if there is a selection anchor,
@@ -915,6 +946,33 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             *self.text_input.selection,
             maintain_selection_offset=False,
         )
+
+    def copy_to_clipboard(self, text: str) -> None:
+        """
+        Sets the editor's internal clipboard, and the system clipboard if enabled, to
+        the value of text
+
+        Args:
+            text (str): The text to place on the clipboard.
+        """
+        self.text_input.clipboard = text
+        if self.use_system_clipboard and self.text_input.system_copy is not None:
+            try:
+                self.text_input.system_copy(text)
+            except pyperclip.PyperclipException:
+                self.post_message(TextAreaClipboardError(action="copy"))
+
+    def pause_blink(self, visible: bool = True) -> None:
+        """
+        Pauses the blink of the cursor
+        """
+        self.text_input._pause_blink(visible=visible)
+
+    def restart_blink(self) -> None:
+        """
+        Restarts the blink of the cursor
+        """
+        self.text_input._restart_blink()
 
     def compose(self) -> ComposeResult:
         with TextContainer():
