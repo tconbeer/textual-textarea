@@ -51,7 +51,7 @@ class TextApp(App, inherit_bindings=False):
                 "set",
                 "space",
                 "super",
-                "supercalifragilisticexpialadocious",
+                "supercalifragilisticexpialadocioussupercalifragilisticexpialadocious",
             ]
             return [(w, w) for w in words if w.startswith(prefix)]
 

@@ -10,6 +10,7 @@ from textual.events import Key, Resize
 from textual.geometry import Size
 from textual.message import Message
 from textual.reactive import Reactive, reactive
+from textual.widget import Widget
 from textual.widgets import OptionList
 from textual.widgets._option_list import NewOptionListContent
 from textual.widgets.option_list import Option
@@ -67,6 +68,50 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             *content, name=name, id=id, classes=classes, disabled=disabled, wrap=False
         )
 
+    def set_offset(self, x_offset: int, y_offset: int) -> None:
+        """The CSS Offset of this widget from its parent."""
+        self.styles.offset = ScalarOffset.from_offset(
+            (
+                x_offset,
+                y_offset,
+            )
+        )
+
+    @property
+    def x_offset(self) -> int:
+        """The x-coord of the CSS Offset of this widget from its parent."""
+        return int(self.styles.offset.x.value)
+
+    @property
+    def y_offset(self) -> int:
+        """The y-coord of the CSS Offset of this widget from its parent."""
+        return int(self.styles.offset.y.value)
+
+    @property
+    def parent_height(self) -> int:
+        """
+        The content size height of the parent widget
+        """
+        return self.parent_size.height
+
+    @property
+    def parent_width(self) -> int:
+        """
+        The content size height of the parent widget
+        """
+        return self.parent_size.width
+
+    @property
+    def parent_size(self) -> Size:
+        """
+        The content size of the parent widget
+        """
+        parent = self.parent
+        if isinstance(parent, Widget):
+            return parent.content_size
+        else:
+            return self.screen.content_size
+
     @on(CompletionsReady)
     def populate_and_position_list(self, event: CompletionsReady) -> None:
         event.stop()
@@ -100,26 +145,21 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
                     prefix_length=len(event.prefix),
                     additional_x_offset=additional_x_offset,
                     cursor_x=self.cursor_offset[0],
-                    container_width=self._parent_container_size.width,
+                    container_width=self.parent_width,
                     width=self._width,
                 )
             except ValueError:
                 x_offset = 0
                 self.styles.width = self._parent_container_size.width
-            self.styles.offset = ScalarOffset.from_offset(
-                (x_offset, int(self.styles.offset.y.value))
-            )
+            self.set_offset(x_offset, self.y_offset)
         # adjust x offset if we have to due to truncation
         elif additional_x_offset != self.additional_x_offset:
-            self.styles.offset = ScalarOffset.from_offset(
-                (
-                    min(
-                        int(self.styles.offset.x.value)
-                        + (additional_x_offset - self.additional_x_offset),
-                        self._parent_container_size.width - self._width,
-                    ),
-                    int(self.styles.offset.y.value),
-                )
+            self.set_offset(
+                min(
+                    self.x_offset + (additional_x_offset - self.additional_x_offset),
+                    self.parent_width - self._width,
+                ),
+                self.y_offset,
             )
 
         self.add_options(items=items)
@@ -143,7 +183,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             y_offset = self._get_y_offset(
                 cursor_y=self.cursor_offset[1],
                 height=event.size.height,
-                container_height=self._parent_container_size.height,
+                container_height=self.parent_height,
             )
         except ValueError:
             if self.styles.max_height is not None and self.styles.max_height.value > 1:
@@ -155,9 +195,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             else:
                 self.post_message(TextAreaHideCompletionList())
         else:
-            self.styles.offset = ScalarOffset.from_offset(
-                (int(self.styles.offset.x.value), y_offset)
-            )
+            self.set_offset(self.x_offset, y_offset)
 
     @work(thread=True, exclusive=True, group="completers")
     def show_completions(
@@ -179,9 +217,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         elif event.key == "down":
             self.action_cursor_down()
         elif event.key == "pageup":
-            self.action_page_up()  # type: ignore
+            self.action_page_up()
         elif event.key == "pagedown":
-            self.action_page_down()  # type: ignore
+            self.action_page_down()
 
     @property
     def _parent_container_size(self) -> Size:
@@ -211,8 +249,8 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
 
     @staticmethod
     def _get_y_offset(cursor_y: int, height: int, container_height: int) -> int:
-        fits_above = cursor_y + 1 > height
-        fits_below = container_height - cursor_y > height
+        fits_above = height < cursor_y + 1
+        fits_below = height < container_height - cursor_y
         if fits_below:
             y = cursor_y + 1
         elif fits_above:

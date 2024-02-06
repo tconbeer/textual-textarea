@@ -67,7 +67,12 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     TextAreaPlus {
         width: 1fr;
         height: 1fr;
+        border: none;
         layer: main;
+
+        &:focus {
+            border: none;
+        }
     }
     """
     BINDINGS = [
@@ -186,6 +191,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             id=id,
             classes=classes,
             disabled=disabled,
+            soft_wrap=False,
+            tab_behaviour="indent",
+            show_line_numbers=True,
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
@@ -417,9 +425,13 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                 ]
             ):
                 offsets = [
-                    0
-                    if not line
-                    else (2 if line[len(self.inline_comment_marker)].isspace() else 1)
+                    (
+                        0
+                        if not line
+                        else (
+                            2 if line[len(self.inline_comment_marker)].isspace() else 1
+                        )
+                    )
                     for line in stripped_lines
                 ]
                 for lno, indent, offset in zip(
@@ -815,12 +827,15 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         theme: str = "monokai",
         text: str = "",
         use_system_clipboard: bool = True,
-        path_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
-        | None = path_completer,
-        member_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
-        | None = None,
-        word_completer: Callable[[str], Sequence[tuple[RenderableType, str]]]
-        | None = None,
+        path_completer: (
+            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+        ) = path_completer,
+        member_completer: (
+            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+        ) = None,
+        word_completer: (
+            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+        ) = None,
     ) -> None:
         """
         Initializes an instance of a TextArea.
@@ -946,7 +961,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         self.text_input.replace(
             text,
-            *self.text_input.selection,
+            *list(sorted(self.text_input.selection)),
             maintain_selection_offset=False,
         )
 
@@ -1014,7 +1029,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         with TextContainer():
             yield TextAreaPlus(language=self._language, text=self._initial_text)
             yield CompletionList()
-        with FooterContainer():
+        with FooterContainer(classes="hide"):
             yield Label("", id="validation_label")
 
     def on_mount(self) -> None:
@@ -1041,7 +1056,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     def update_completion_list_offset(
         self, event: TextAreaPlus.SelectionChanged
     ) -> None:
-        region_x, region_y, _, _ = self.text_input.content_region
+        region_x, region_y, _, _ = self.text_input.region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
             region_y,
@@ -1052,7 +1067,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self, event: TextAreaPlus.ShowCompletionList
     ) -> None:
         event.stop()
-        region_x, region_y, _, _ = self.text_input.content_region
+        region_x, region_y, _, _ = self.text_input.region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
             region_y,
@@ -1166,6 +1181,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             self.footer.query_one(Label).update("")
         except Exception:
             pass
+        self.footer.add_class("hide")
 
     def _mount_footer_input(self, name: str) -> None:
         if name == "open":
@@ -1183,5 +1199,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         input.styles.background = self.theme_colors.bgcolor
         input.styles.border = "round", self.theme_colors.contrast_text_color
         input.styles.color = self.theme_colors.contrast_text_color
+        self.footer.remove_class("hide")
         self.footer.mount(input)
         input.focus()
