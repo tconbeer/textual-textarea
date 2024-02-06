@@ -217,9 +217,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         elif event.key == "down":
             self.action_cursor_down()
         elif event.key == "pageup":
-            self.action_page_up()  # type: ignore
+            self.action_page_up()
         elif event.key == "pagedown":
-            self.action_page_down()  # type: ignore
+            self.action_page_down()
 
     @property
     def _parent_container_size(self) -> Size:
