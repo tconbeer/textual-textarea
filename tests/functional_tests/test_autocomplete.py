@@ -110,8 +110,8 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
         ta.selection = Selection((0, len(test_path)), (0, len(test_path)))
 
         await pilot.press("slash")
-        await app.workers.wait_for_complete()
-        await pilot.pause()
+        while ta.completion_list.open is False:
+            await pilot.pause()
         assert ta.text_input.completer_active == "path"
         assert ta.completion_list.open is True
         assert ta.completion_list.option_count == 2
@@ -147,8 +147,8 @@ async def test_autocomplete_members(
         ta.selection = Selection((0, len(text)), (0, len(text)))
         for key in keys:
             await pilot.press(key)
-        await app.workers.wait_for_complete()
-        await pilot.pause()
+        while ta.completion_list.open is False:
+            await pilot.pause()
 
         member_completer.assert_called_with(expected_prefix)
         assert ta.text_input.completer_active == "member"
