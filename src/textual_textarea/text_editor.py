@@ -59,24 +59,6 @@ class InputState:
     text: str
     selection: Selection
 
-    @property
-    def cursor(self) -> Cursor:
-        return Cursor(self.selection.end[0], self.selection.end[1])
-
-    @property
-    def selection_anchor(self) -> Cursor | None:
-        if self.selection.start == self.selection.end:
-            return None
-        else:
-            return Cursor(self.selection.start[0], self.selection.start[1])
-
-    @property
-    def lines(self) -> List[str]:
-        if not self.text:
-            return [" "]
-        else:
-            return [f"{line} " for line in self.text.splitlines(keepends=False)]
-
 
 class TextAreaPlus(TextArea, inherit_bindings=False):
     DEFAULT_CSS = """
