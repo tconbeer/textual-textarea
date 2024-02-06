@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App
-from textual_textarea import TextArea
-from textual_textarea.key_handlers import Cursor
+from textual.widgets.text_area import Selection
+from textual_textarea import TextEditor
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ async def test_autocomplete(
     app: App, word_completer: Callable[[str], list[tuple[str, str]]]
 ) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer
         ta.focus()
 
@@ -97,17 +97,17 @@ async def test_autocomplete(
         assert ta.text_input.completer_active is None
         assert ta.completion_list.open is False
         assert ta.text == "season"
-        assert ta.cursor.pos == 6
+        assert ta.selection.end[1] == 6
 
 
 @pytest.mark.asyncio
 async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.focus()
         test_path = str(data_dir / "test_validator")
         ta.text = test_path
-        ta.cursor = Cursor(lno=0, pos=len(test_path))
+        ta.selection = Selection((0, len(test_path)), (0, len(test_path)))
 
         await pilot.press("slash")
         await app.workers.wait_for_complete()
@@ -140,11 +140,11 @@ async def test_autocomplete_members(
     expected_prefix: str,
 ) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.member_completer = member_completer
         ta.focus()
         ta.text = text
-        ta.cursor = Cursor(0, len(text))
+        ta.selection = Selection((0, len(text)), (0, len(text)))
         for key in keys:
             await pilot.press(key)
         await app.workers.wait_for_complete()

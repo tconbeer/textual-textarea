@@ -5,7 +5,7 @@ from collections import deque
 from dataclasses import dataclass
 from math import ceil, floor
 from os.path import expanduser
-from typing import Any, Callable, Deque, List, Literal, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Sequence
 
 import pyperclip
 from rich.console import RenderableType
@@ -17,8 +17,7 @@ from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.timer import Timer
 from textual.widget import Widget
-from textual.widgets import Input, Label, OptionList
-from textual.widgets import TextArea as _TextArea
+from textual.widgets import Input, Label, OptionList, TextArea
 from textual.widgets.text_area import Location, Selection
 
 from textual_textarea.autocomplete import CompletionList
@@ -26,14 +25,15 @@ from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
-from textual_textarea.key_handlers import Cursor
 from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaHideCompletionList,
     TextAreaSaved,
-    TextAreaScrollOne,
 )
 from textual_textarea.path_input import PathInput, path_completer
+
+if TYPE_CHECKING:
+    from tree_sitter import Node, Query
 
 BRACKETS = {
     "(": ")",
@@ -61,28 +61,10 @@ class InputState:
     text: str
     selection: Selection
 
-    @property
-    def cursor(self) -> Cursor:
-        return Cursor(self.selection.end[0], self.selection.end[1])
 
-    @property
-    def selection_anchor(self) -> Cursor | None:
-        if self.selection.start == self.selection.end:
-            return None
-        else:
-            return Cursor(self.selection.start[0], self.selection.start[1])
-
-    @property
-    def lines(self) -> List[str]:
-        if not self.text:
-            return [" "]
-        else:
-            return [f"{line} " for line in self.text.splitlines(keepends=False)]
-
-
-class TextInput(_TextArea, inherit_bindings=False):
+class TextAreaPlus(TextArea, inherit_bindings=False):
     DEFAULT_CSS = """
-    TextInput {
+    TextAreaPlus {
         width: 1fr;
         height: 1fr;
         layer: main;
@@ -787,18 +769,18 @@ class TextInput(_TextArea, inherit_bindings=False):
         indent_level = len(line) - len(line.lstrip(indent_char))
         return indent_level
 
-    def _get_selected_lines(self) -> Tuple[List[str], Location, Location]:
+    def _get_selected_lines(self) -> tuple[list[str], Location, Location]:
         [first, last] = sorted([self.selection.start, self.selection.end])
         lines = [self.document.get_line(i) for i in range(first[0], last[0] + 1)]
         return lines, first, last
 
 
-class TextArea(Widget, can_focus=True, can_focus_children=False):
+class TextEditor(Widget, can_focus=True, can_focus_children=False):
     """
     A Widget that presents a feature-rich, multiline text editor interface.
 
     Attributes:
-        text (str): The contents of the TextArea
+        text (str): The contents of the TextEditor
         language (str): Must be the short name of a Pygments lexer
             (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
         theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
@@ -825,11 +807,11 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def __init__(
         self,
         *children: Widget,
-        name: Union[str, None] = None,
-        id: Union[str, None] = None,
-        classes: Union[str, None] = None,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
         disabled: bool = False,
-        language: Union[str, None] = None,
+        language: str | None = None,
         theme: str = "monokai",
         text: str = "",
         use_system_clipboard: bool = True,
@@ -866,7 +848,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def text(self) -> str:
         """
         Returns:
-            (str) The contents of the TextArea.
+            (str) The contents of the TextEditor.
         """
         return self.text_input.text
 
@@ -875,7 +857,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         """
         Args:
             contents (str): A string (optionally containing newlines) to
-                set the contents of the TextArea equal to.
+                set the contents of the TextEditor equal to.
         """
         self.text_input.move_cursor((0, 0))
         self.text_input.text = contents
@@ -884,61 +866,31 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def selected_text(self) -> str:
         """
         Returns:
-            str: The contents of the TextArea between the selection
+            str: The contents of the TextEditor between the selection
             anchor and the cursor. Returns an empty string if the
             selection anchor is not set.
         """
         return self.text_input.selected_text
 
     @property
-    def cursor(self) -> Cursor:
+    def selection(self) -> Selection:
         """
         Returns
-            Cursor: The location of the cursor in the TextInput
+            Selection: The location of the cursor in the TextEditor
         """
-        return Cursor(*self.text_input.cursor_location)
+        return self.text_input.selection
 
-    @cursor.setter
-    def cursor(self, cursor: Union[Cursor, Tuple[int, int]]) -> None:
+    @selection.setter
+    def selection(self, selection: Selection) -> None:
         """
         Args:
-            cursor (Union[Cursor, Tuple[int, int]]): The position (line number, pos)
-            to move the cursor to
+            selection (Selection): The position (line number, pos)
+            to move the cursor and selection anchor to
         """
-        self.text_input.cursor_location = (cursor[0], cursor[1])
+        self.text_input.selection = selection
 
     @property
-    def selection_anchor(self) -> Union[Cursor, None]:
-        """
-        Returns
-            Cursor: The location of the selection anchor in the TextInput
-        """
-        if self.text_input.selected_text:
-            return Cursor(
-                self.text_input.selection.start[0], self.text_input.selection.start[1]
-            )
-        else:
-            return None
-
-    @selection_anchor.setter
-    def selection_anchor(self, cursor: Union[Cursor, Tuple[int, int], None]) -> None:
-        """
-        Args:
-            cursor (Union[Cursor, Tuple[int, int], None]): The position
-            (line number, pos) to move the selection anchor to, or None
-            to clear the selection.
-        """
-        if cursor is None:
-            self.text_input.selection = Selection(
-                self.text_input.cursor_location, self.text_input.cursor_location
-            )
-        else:
-            self.text_input.selection = Selection(
-                (cursor[0], cursor[1]), self.text_input.cursor_location
-            )
-
-    @property
-    def language(self) -> Union[str, None]:
+    def language(self) -> str | None:
         """
         Returns
             str | None: The Pygments short name of the active language
@@ -952,6 +904,37 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             langage (str | None): The Pygments short name for the new language
         """
         self.text_input.language = language
+
+    @property
+    def line_count(self) -> int:
+        """
+        Returns the number of lines in the document.
+        """
+        return self.text_input.document.line_count
+
+    def get_line(self, index: int) -> str:
+        """
+        Returns the line with the given index from the document.
+
+        Args:
+            index: The index of the line in the document.
+
+        Returns:
+            The str instance representing the line.
+        """
+        return self.text_input.document.get_line(index=index)
+
+    def get_text_range(self, selection: Selection) -> str:
+        """
+        Get the text between a start and end location.
+
+        Args:
+            selection: The start and end locations
+
+        Returns:
+            The text between start and end.
+        """
+        return self.text_input.get_text_range(*selection)
 
     def insert_text_at_selection(self, text: str) -> None:
         """
@@ -967,9 +950,69 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
             maintain_selection_offset=False,
         )
 
+    def copy_to_clipboard(self, text: str) -> None:
+        """
+        Sets the editor's internal clipboard, and the system clipboard if enabled, to
+        the value of text
+
+        Args:
+            text (str): The text to place on the clipboard.
+        """
+        self.text_input.clipboard = text
+        if self.use_system_clipboard and self.text_input.system_copy is not None:
+            try:
+                self.text_input.system_copy(text)
+            except pyperclip.PyperclipException:
+                self.post_message(TextAreaClipboardError(action="copy"))
+
+    def pause_blink(self, visible: bool = True) -> None:
+        """
+        Pauses the blink of the cursor
+        """
+        self.text_input._pause_blink(visible=visible)
+
+    def restart_blink(self) -> None:
+        """
+        Restarts the blink of the cursor
+        """
+        self.text_input._restart_blink()
+
+    def prepare_query(self, source: str) -> "Query" | None:
+        """
+        Build a Query from source. The Query can be used with self.query_syntax_tree
+
+        Args:
+            source (str): A tree-sitter query. See
+            https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax
+        """
+        return self.text_input.document.prepare_query(query=source)
+
+    def query_syntax_tree(
+        self,
+        query: "Query",
+        start_point: tuple[int, int] | None = None,
+        end_point: tuple[int, int] | None = None,
+    ) -> list[tuple["Node", str]]:
+        """
+        Query the tree-sitter syntax tree.
+
+        Args:
+            query (Query): The tree-sitter Query to perform.
+            start_point (tuple[int, int] | None): The (row, column byte) to start the
+                query at.
+            end_point (tuple[int, int] | None): The (row, column byte) to end the
+                query at.
+
+        Returns:
+            A tuple containing the nodes and text captured by the query.
+        """
+        return self.text_input.document.query_syntax_tree(
+            query=query, start_point=start_point, end_point=end_point
+        )
+
     def compose(self) -> ComposeResult:
         with TextContainer():
-            yield TextInput(language=self._language, text=self._initial_text)
+            yield TextAreaPlus(language=self._language, text=self._initial_text)
             yield CompletionList()
         with FooterContainer():
             yield Label("", id="validation_label")
@@ -977,7 +1020,7 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
         self.text_container = self.query_one(TextContainer)
-        self.text_input = self.query_one(TextInput)
+        self.text_input = self.query_one(TextAreaPlus)
         self.completion_list = self.query_one(CompletionList)
         self.footer = self.query_one(FooterContainer)
         self.theme = self._theme
@@ -988,22 +1031,25 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
     def on_click(self) -> None:
         self.text_input.focus()
 
-    def on_text_area_hide_completion_list(
-        self, event: TextAreaHideCompletionList
-    ) -> None:
+    @on(TextAreaHideCompletionList)
+    def hide_completion_list(self, event: TextAreaHideCompletionList) -> None:
         event.stop()
         self.completion_list.open = False
         self.text_input.completer_active = None
 
-    def on_text_area_selection_changed(self, event: TextInput.SelectionChanged) -> None:
+    @on(TextAreaPlus.SelectionChanged)
+    def update_completion_list_offset(
+        self, event: TextAreaPlus.SelectionChanged
+    ) -> None:
         region_x, region_y, _, _ = self.text_input.content_region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
             region_y,
         )
 
-    def on_text_input_show_completion_list(
-        self, event: TextInput.ShowCompletionList
+    @on(TextAreaPlus.ShowCompletionList)
+    def update_completers_and_completion_list_offset(
+        self, event: TextAreaPlus.ShowCompletionList
     ) -> None:
         event.stop()
         region_x, region_y, _, _ = self.text_input.content_region
@@ -1018,18 +1064,77 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         elif self.text_input.completer_active == "word":
             self.completion_list.show_completions(event.prefix, self.word_completer)
 
-    def on_text_input_completion_list_key(
-        self, event: TextInput.CompletionListKey
+    @on(TextAreaPlus.CompletionListKey)
+    def forward_keypress_to_completion_list(
+        self, event: TextAreaPlus.CompletionListKey
     ) -> None:
         event.stop()
         self.completion_list.process_keypress(event.key)
 
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+    @on(OptionList.OptionSelected)
+    def insert_completion(self, event: OptionList.OptionSelected) -> None:
         event.stop()
         value = getattr(event.option, "value", None) or str(event.option.prompt)
         self.text_input.replace_current_word(value)
         self.completion_list.open = False
         self.text_input.completer_active = None
+
+    @on(PathInput.Cancelled)
+    def clear_footer(self) -> None:
+        self._clear_footer_input()
+        self.text_input.focus()
+
+    @on(Input.Changed)
+    def update_validation_label(self, message: Input.Changed) -> None:
+        if message.input.id in ("textarea__save_input", "textarea__open_input"):
+            label = self.footer.query_one(Label)
+            if message.validation_result and not message.validation_result.is_valid:
+                label.update(";".join(message.validation_result.failure_descriptions))
+            else:
+                label.update("")
+
+    @on(Input.Submitted, "#textarea__save_input")
+    def save_file(self, message: Input.Submitted) -> None:
+        """
+        Handle the submit event for the Save and Open modals.
+        """
+        message.stop()
+        expanded_path = expanduser(message.input.value)
+        try:
+            with open(expanded_path, "w") as f:
+                f.write(self.text)
+        except OSError as e:
+            self.app.push_screen(
+                ErrorModal(
+                    title="Save File Error",
+                    header=("There was an error when attempting to save your file:"),
+                    error=e,
+                )
+            )
+        else:
+            self.post_message(TextAreaSaved(path=expanded_path))
+        self._clear_footer_input()
+        self.text_input.focus()
+
+    @on(Input.Submitted, "#textarea__open_input")
+    def open_file(self, message: Input.Submitted) -> None:
+        message.stop()
+        expanded_path = expanduser(message.input.value)
+        try:
+            with open(expanded_path, "r") as f:
+                contents = f.read()
+        except OSError as e:
+            self.app.push_screen(
+                ErrorModal(
+                    title="Open File Error",
+                    header=("There was an error when attempting to open your file:"),
+                    error=e,
+                )
+            )
+        else:
+            self.text = contents
+        self._clear_footer_input()
+        self.text_input.focus()
 
     def watch_theme(self, theme: str) -> None:
         try:
@@ -1062,10 +1167,6 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         except Exception:
             pass
 
-    def on_cancel_path_input(self) -> None:
-        self._clear_footer_input()
-        self.text_input.focus()
-
     def _mount_footer_input(self, name: str) -> None:
         if name == "open":
             file_okay, dir_okay, must_exist = True, False, True
@@ -1084,61 +1185,3 @@ class TextArea(Widget, can_focus=True, can_focus_children=False):
         input.styles.color = self.theme_colors.contrast_text_color
         self.footer.mount(input)
         input.focus()
-
-    def on_text_area_scroll_one(self, event: TextAreaScrollOne) -> None:
-        event.stop()
-        offset = 1 if event.direction == "down" else -1
-        self.text_container.scroll_to(
-            self.text_container.window_region.x,
-            self.text_container.window_region.y + offset,
-        )
-
-    def on_input_changed(self, message: Input.Changed) -> None:
-        if message.input.id in ("textarea__save_input", "textarea__open_input"):
-            label = self.footer.query_one(Label)
-            if message.validation_result and not message.validation_result.is_valid:
-                label.update(";".join(message.validation_result.failure_descriptions))
-            else:
-                label.update("")
-
-    def on_input_submitted(self, message: Input.Submitted) -> None:
-        """
-        Handle the submit event for the Save and Open modals.
-        """
-        expanded_path = expanduser(message.input.value)
-        if message.input.id == "textarea__save_input":
-            message.stop()
-            try:
-                with open(expanded_path, "w") as f:
-                    f.write(self.text)
-            except OSError as e:
-                self.app.push_screen(
-                    ErrorModal(
-                        title="Save File Error",
-                        header=(
-                            "There was an error when attempting to save your file:"
-                        ),
-                        error=e,
-                    )
-                )
-            else:
-                self.post_message(TextAreaSaved(path=expanded_path))
-        elif message.input.id == "textarea__open_input":
-            message.stop()
-            try:
-                with open(expanded_path, "r") as f:
-                    contents = f.read()
-            except OSError as e:
-                self.app.push_screen(
-                    ErrorModal(
-                        title="Open File Error",
-                        header=(
-                            "There was an error when attempting to open your file:"
-                        ),
-                        error=e,
-                    )
-                )
-            else:
-                self.text = contents
-        self._clear_footer_input()
-        self.text_input.focus()

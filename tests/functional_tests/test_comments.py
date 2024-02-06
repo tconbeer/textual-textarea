@@ -1,7 +1,7 @@
 import pytest
 from textual.app import App
-from textual_textarea import TextArea
-from textual_textarea.key_handlers import Cursor
+from textual.widgets.text_area import Selection
+from textual_textarea import TextEditor
 
 
 @pytest.mark.parametrize(
@@ -16,11 +16,11 @@ from textual_textarea.key_handlers import Cursor
 @pytest.mark.asyncio
 async def test_comments(app: App, language: str, expected_marker: str) -> None:
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.language = language
         original_text = "foo bar baz"
         ta.text = original_text
-        ta.cursor = Cursor(0, 0)
+        ta.selection = Selection((0, 0), (0, 0))
 
         await pilot.press("ctrl+underscore")  # alias for ctrl+/
         assert ta.text == f"{expected_marker}{original_text}"

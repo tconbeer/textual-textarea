@@ -5,7 +5,7 @@ import pytest
 from textual.app import App
 from textual.message import Message
 from textual.widgets import Input
-from textual_textarea import TextArea, TextAreaSaved
+from textual_textarea import TextAreaSaved, TextEditor
 
 
 @pytest.mark.parametrize("filename", ["foo.py", "empty.py"])
@@ -16,7 +16,7 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         contents = f.read()
 
     async with app.run_test() as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         assert ta.text == ""
         starting_text = "123"
         for key in starting_text:
@@ -38,7 +38,7 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         # make sure the end of the buffer is formatted properly.
         # these previously caused a crash.
         await pilot.press("ctrl+end")
-        assert ta.cursor.pos >= 0
+        assert ta.selection.end[1] >= 0
         await pilot.press("enter")
 
 
@@ -49,7 +49,7 @@ async def test_save(app: App, tmp_path: Path) -> None:
     print(p)
     messages: List[Message] = []
     async with app.run_test(message_hook=messages.append) as pilot:
-        ta = app.query_one("#ta", expect_type=TextArea)
+        ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = TEXT
 
         await pilot.press("ctrl+s")
