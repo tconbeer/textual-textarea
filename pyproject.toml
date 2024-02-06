@@ -21,7 +21,7 @@ tree-sitter-languages = "<1.10.0" # 1.10 unavail on windows, macos on 1/30/24
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = "0.48.1"
+textual = "0.48.2"
 textual-dev = "^1.2.1"
 pyinstrument = "^4.6.2"
 
