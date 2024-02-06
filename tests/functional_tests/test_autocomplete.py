@@ -47,8 +47,8 @@ async def test_autocomplete(
         ta.focus()
 
         await pilot.press("s")
-        await app.workers.wait_for_complete()
-        await pilot.pause()
+        while ta.completion_list.open is False:
+            await pilot.pause()
         assert ta.text_input.completer_active == "word"
         assert ta.completion_list.open is True
         assert ta.completion_list.option_count == 10
