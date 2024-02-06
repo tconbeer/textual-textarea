@@ -36,6 +36,9 @@ class FooterContainer(
             height: auto;
             width: 100%
         }
+        FooterContainer.hide {
+            height: 0;
+        }
     """
 
     def __init__(
