@@ -25,7 +25,6 @@ from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
-from textual_textarea.key_handlers import Cursor
 from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaHideCompletionList,
@@ -871,51 +870,21 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         return self.text_input.selected_text
 
     @property
-    def cursor(self) -> Cursor:
+    def selection(self) -> Selection:
         """
         Returns
-            Cursor: The location of the cursor in the TextEditor
+            Selection: The location of the cursor in the TextEditor
         """
-        return Cursor(*self.text_input.cursor_location)
+        return self.text_input.selection
 
-    @cursor.setter
-    def cursor(self, cursor: Union[Cursor, Tuple[int, int]]) -> None:
+    @selection.setter
+    def selection(self, selection: Selection) -> None:
         """
         Args:
-            cursor (Union[Cursor, Tuple[int, int]]): The position (line number, pos)
-            to move the cursor to
+            selection (Selection): The position (line number, pos)
+            to move the cursor and selection anchor to
         """
-        self.text_input.cursor_location = (cursor[0], cursor[1])
-
-    @property
-    def selection_anchor(self) -> Union[Cursor, None]:
-        """
-        Returns
-            Cursor: The location of the selection anchor in the TextEditor
-        """
-        if self.text_input.selected_text:
-            return Cursor(
-                self.text_input.selection.start[0], self.text_input.selection.start[1]
-            )
-        else:
-            return None
-
-    @selection_anchor.setter
-    def selection_anchor(self, cursor: Union[Cursor, Tuple[int, int], None]) -> None:
-        """
-        Args:
-            cursor (Union[Cursor, Tuple[int, int], None]): The position
-            (line number, pos) to move the selection anchor to, or None
-            to clear the selection.
-        """
-        if cursor is None:
-            self.text_input.selection = Selection(
-                self.text_input.cursor_location, self.text_input.cursor_location
-            )
-        else:
-            self.text_input.selection = Selection(
-                (cursor[0], cursor[1]), self.text_input.cursor_location
-            )
+        self.text_input.selection = selection
 
     @property
     def language(self) -> Union[str, None]:

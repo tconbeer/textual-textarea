@@ -38,7 +38,7 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         # make sure the end of the buffer is formatted properly.
         # these previously caused a crash.
         await pilot.press("ctrl+end")
-        assert ta.cursor.pos >= 0
+        assert ta.selection.end[1] >= 0
         await pilot.press("enter")
 
 

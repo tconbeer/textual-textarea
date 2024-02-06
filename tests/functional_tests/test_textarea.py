@@ -1,312 +1,246 @@
-from typing import List, Union
+from __future__ import annotations
+
+from typing import List
 
 import pytest
 from textual.app import App
 from textual.widgets.text_area import Selection
 from textual_textarea import TextEditor
-from textual_textarea.key_handlers import Cursor
-from textual_textarea.serde import deserialize_lines, serialize_lines
 
 
 @pytest.mark.parametrize(
-    "keys,lines,anchor,cursor,expected_lines,expected_anchor,expected_cursor",
+    "keys,text,selection,expected_text,expected_selection",
     [
         (
             ["ctrl+a"],
-            ["select ", " foo "],
-            None,
-            Cursor(1, 2),
-            None,
-            Cursor(0, 0),
-            Cursor(1, 4),
+            "select\n foo",
+            Selection(start=(1, 2), end=(1, 2)),
+            "select\n foo",
+            Selection(start=(0, 0), end=(1, 4)),
         ),
         (
             ["ctrl+shift+right"],
-            ["select ", " foo "],
-            None,
-            Cursor(0, 0),
-            None,
-            Cursor(0, 0),
-            Cursor(0, 6),
+            "select\n foo",
+            Selection(start=(0, 0), end=(0, 0)),
+            "select\n foo",
+            Selection(start=(0, 0), end=(0, 6)),
         ),
         (
             ["right"],
-            ["select ", " foo "],
-            Cursor(0, 0),
-            Cursor(0, 6),
-            None,
-            None,
-            Cursor(1, 0),
+            "select\n foo",
+            Selection(start=(0, 0), end=(0, 6)),
+            "select\n foo",
+            Selection(start=(1, 0), end=(1, 0)),
         ),
         (
             ["a"],
-            ["select ", " foo "],
-            None,
-            Cursor(1, 4),
-            ["select ", " fooa "],
-            None,
-            Cursor(1, 5),
+            "select\n foo",
+            Selection(start=(1, 4), end=(1, 4)),
+            "select\n fooa",
+            Selection(start=(1, 5), end=(1, 5)),
         ),
         (
             ["a"],
-            ["select ", " foo "],
-            Cursor(1, 0),
-            Cursor(1, 4),
-            ["select ", "a "],
-            None,
-            Cursor(1, 1),
+            "select\n foo",
+            Selection(start=(1, 0), end=(1, 4)),
+            "select\na",
+            Selection(start=(1, 1), end=(1, 1)),
         ),
         (
             ["enter"],
-            ["a ", "a "],
-            None,
-            Cursor(1, 0),
-            ["a ", " ", "a "],
-            None,
-            Cursor(2, 0),
+            "a\na",
+            Selection(start=(1, 0), end=(1, 0)),
+            "a\n\na",
+            Selection(start=(2, 0), end=(2, 0)),
         ),
         (
             ["enter"],
-            ["a ", "a "],
-            None,
-            Cursor(1, 1),
-            ["a ", "a ", " "],
-            None,
-            Cursor(2, 0),
+            "a\na",
+            Selection(start=(1, 1), end=(1, 1)),
+            "a\na\n",
+            Selection(start=(2, 0), end=(2, 0)),
         ),
         (
             ["enter", "b"],
-            ["a() "],
-            None,
-            Cursor(0, 2),
-            ["a( ", "    b ", ") "],
-            None,
-            Cursor(1, 5),
+            "a()",
+            Selection(start=(0, 2), end=(0, 2)),
+            "a(\n    b\n)",
+            Selection(start=(1, 5), end=(1, 5)),
         ),
         (
             ["enter", "b"],
-            [" a() "],
-            None,
-            Cursor(0, 3),
-            [" a( ", "    b ", " ) "],
-            None,
-            Cursor(1, 5),
+            " a()",
+            Selection(start=(0, 3), end=(0, 3)),
+            " a(\n    b\n )",
+            Selection(start=(1, 5), end=(1, 5)),
         ),
         (
             ["delete"],
-            ["0 ", "1 ", "2 ", "3 "],
-            None,
-            Cursor(2, 1),
-            ["0 ", "1 ", "23 "],
-            None,
-            Cursor(2, 1),
+            "0\n1\n2\n3",
+            Selection(start=(2, 1), end=(2, 1)),
+            "0\n1\n23",
+            Selection(start=(2, 1), end=(2, 1)),
         ),
         (
             ["shift+delete"],
-            ["0 ", "1 ", "2 ", "3 "],
-            None,
-            Cursor(2, 1),
-            ["0 ", "1 ", "3 "],
-            None,
-            Cursor(2, 0),
+            "0\n1\n2\n3",
+            Selection(start=(2, 1), end=(2, 1)),
+            "0\n1\n3",
+            Selection(start=(2, 0), end=(2, 0)),
         ),
         (
             ["shift+delete"],
-            ["0 ", "1 ", "2 ", "3 "],
-            Cursor(2, 0),
-            Cursor(2, 1),
-            ["0 ", "1 ", " ", "3 "],
-            None,
-            Cursor(2, 0),
+            "0\n1\n2\n3",
+            Selection(start=(2, 0), end=(2, 1)),
+            "0\n1\n\n3",
+            Selection(start=(2, 0), end=(2, 0)),
         ),
         (
             ["shift+delete"],
-            ["0 ", "1 ", "2 ", "3 "],
-            None,
-            Cursor(3, 1),
-            ["0 ", "1 ", "2 "],
-            None,
-            Cursor(2, 1),
+            "0\n1\n2\n3",
+            Selection(start=(3, 1), end=(3, 1)),
+            "0\n1\n2",
+            Selection(start=(2, 1), end=(2, 1)),
         ),
         (
             ["shift+delete"],
-            ["foo "],
-            None,
-            Cursor(3, 1),
-            [" "],
-            None,
-            Cursor(0, 0),
+            "foo",
+            Selection(start=(3, 1), end=(3, 1)),
+            "",
+            Selection(start=(0, 0), end=(0, 0)),
         ),
         (
             ["ctrl+home"],
-            ["foo ", "bar"],
-            None,
-            Cursor(1, 2),
-            ["foo ", "bar"],
-            None,
-            Cursor(0, 0),
+            "foo\nbar",
+            Selection(start=(1, 2), end=(1, 2)),
+            "foo\nbar",
+            Selection(start=(0, 0), end=(0, 0)),
         ),
         (
             ["ctrl+end"],
-            ["foo ", "bar"],
-            None,
-            Cursor(0, 1),
-            ["foo ", "bar"],
-            None,
-            Cursor(1, 3),
+            "foo\nbar",
+            Selection(start=(0, 1), end=(0, 1)),
+            "foo\nbar",
+            Selection(start=(1, 3), end=(1, 3)),
         ),
         (
             ["("],
-            ["foo "],
-            None,
-            Cursor(0, 3),
-            ["foo() "],
-            None,
-            Cursor(0, 4),
+            "foo",
+            Selection(start=(0, 3), end=(0, 3)),
+            "foo()",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["("],
-            ["foo "],
-            None,
-            Cursor(0, 2),
-            ["fo(o "],
-            None,
-            Cursor(0, 3),
+            "foo",
+            Selection(start=(0, 2), end=(0, 2)),
+            "fo(o",
+            Selection(start=(0, 3), end=(0, 3)),
         ),
         (
             ["("],
-            ["foo. "],
-            None,
-            Cursor(0, 3),
-            ["foo(). "],
-            None,
-            Cursor(0, 4),
+            "foo.",
+            Selection(start=(0, 3), end=(0, 3)),
+            "foo().",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["("],
-            ["foo- "],
-            None,
-            Cursor(0, 3),
-            ["foo(- "],
-            None,
-            Cursor(0, 4),
+            "foo-",
+            Selection(start=(0, 3), end=(0, 3)),
+            "foo(-",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["foo "],
-            None,
-            Cursor(0, 3),
-            ["foo' "],
-            None,
-            Cursor(0, 4),
+            "foo",
+            Selection(start=(0, 3), end=(0, 3)),
+            "foo'",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["ba  r "],
-            None,
-            Cursor(0, 3),
-            ["ba '' r "],
-            None,
-            Cursor(0, 4),
+            "ba  r",
+            Selection(start=(0, 3), end=(0, 3)),
+            "ba '' r",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["foo- "],
-            None,
-            Cursor(0, 3),
-            ["foo'- "],
-            None,
-            Cursor(0, 4),
+            "foo-",
+            Selection(start=(0, 3), end=(0, 3)),
+            "foo'-",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["fo-- "],
-            None,
-            Cursor(0, 3),
-            ["fo-'- "],
-            None,
-            Cursor(0, 4),
+            "fo--",
+            Selection(start=(0, 3), end=(0, 3)),
+            "fo-'-",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["fo-. "],
-            None,
-            Cursor(0, 3),
-            ["fo-''. "],
-            None,
-            Cursor(0, 4),
+            "fo-.",
+            Selection(start=(0, 3), end=(0, 3)),
+            "fo-''.",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["'"],
-            ["fo() "],
-            None,
-            Cursor(0, 3),
-            ["fo('') "],
-            None,
-            Cursor(0, 4),
+            "fo()",
+            Selection(start=(0, 3), end=(0, 3)),
+            "fo('')",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["tab"],
-            ["bar "],
-            None,
-            Cursor(0, 1),
-            ["b   ar "],
-            None,
-            Cursor(0, 4),
+            "bar",
+            Selection(start=(0, 1), end=(0, 1)),
+            "b   ar",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["tab"],
-            ["bar "],
-            None,
-            Cursor(0, 0),
-            ["    bar "],
-            None,
-            Cursor(0, 4),
+            "bar",
+            Selection(start=(0, 0), end=(0, 0)),
+            "    bar",
+            Selection(start=(0, 4), end=(0, 4)),
         ),
         (
             ["shift+tab"],
-            ["bar "],
-            None,
-            Cursor(0, 0),
-            ["bar "],
-            None,
-            Cursor(0, 0),
+            "bar",
+            Selection(start=(0, 0), end=(0, 0)),
+            "bar",
+            Selection(start=(0, 0), end=(0, 0)),
         ),
         (
             ["shift+tab"],
-            ["    bar "],
-            None,
-            Cursor(0, 7),
-            ["bar "],
-            None,
-            Cursor(0, 3),
+            "    bar",
+            Selection(start=(0, 7), end=(0, 7)),
+            "bar",
+            Selection(start=(0, 3), end=(0, 3)),
         ),
         (
             ["tab"],
-            ["bar ", " baz "],
-            Cursor(0, 2),
-            Cursor(1, 1),
-            ["    bar ", "    baz "],
-            Cursor(0, 6),
-            Cursor(1, 4),
+            "bar\n baz",
+            Selection(start=(0, 2), end=(1, 1)),
+            "    bar\n    baz",
+            Selection(start=(0, 6), end=(1, 4)),
         ),
         (
             ["tab"],
-            ["bar ", " baz "],
-            Cursor(0, 0),
-            Cursor(1, 1),
-            ["    bar ", "    baz "],
-            Cursor(0, 0),
-            Cursor(1, 4),
+            "bar\n baz",
+            Selection(start=(0, 0), end=(1, 1)),
+            "    bar\n    baz",
+            Selection(start=(0, 0), end=(1, 4)),
         ),
         (
             ["shift+tab"],
-            ["    bar ", "    baz "],
-            Cursor(0, 0),
-            Cursor(1, 1),
-            ["bar ", "baz "],
-            Cursor(0, 0),
-            Cursor(1, 0),
+            "    bar\n    baz",
+            Selection(start=(0, 0), end=(1, 1)),
+            "bar\nbaz",
+            Selection(start=(0, 0), end=(1, 0)),
         ),
     ],
 )
@@ -314,101 +248,81 @@ from textual_textarea.serde import deserialize_lines, serialize_lines
 async def test_keys(
     app: App,
     keys: List[str],
-    lines: List[str],
-    anchor: Union[Cursor, None],
-    cursor: Cursor,
-    expected_lines: Union[List[str], None],
-    expected_anchor: Union[Cursor, None],
-    expected_cursor: Cursor,
+    text: str,
+    selection: Selection,
+    expected_text: str,
+    expected_selection: Selection,
 ) -> None:
-    if expected_lines is None:
-        expected_lines = lines
-
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
-        ta.text = serialize_lines(lines)
-        ta.cursor = cursor
-        ta.selection_anchor = anchor
+        ta.text = text
+        ta.selection = selection
 
         for key in keys:
             await pilot.press(key)
 
-        assert ta.text == serialize_lines(expected_lines)
-        assert ta.selection_anchor == expected_anchor
-        assert ta.cursor == expected_cursor
+        assert ta.text == expected_text
+        assert ta.selection == expected_selection
 
 
 @pytest.mark.parametrize(
-    "starting_anchor,starting_cursor,expected_clipboard",
+    "starting_selection,expected_clipboard,expected_paste_loc",
     [
-        (Cursor(0, 5), Cursor(1, 5), ["56789 ", "01234"]),
-        (Cursor(0, 0), Cursor(1, 0), ["0123456789 ", ""]),
+        (Selection((0, 5), (1, 5)), "56789\n01234", (1, 5)),
+        (Selection((0, 0), (1, 0)), "0123456789\n", (1, 0)),
     ],
 )
 @pytest.mark.asyncio
 async def test_copy_paste(
     app_all_clipboards: App,
-    starting_anchor: Cursor,
-    starting_cursor: Cursor,
-    expected_clipboard: List[str],
+    starting_selection: Selection,
+    expected_clipboard: str,
+    expected_paste_loc: tuple[int, int],
 ) -> None:
     original_text = "0123456789\n0123456789\n0123456789"
 
-    def _maybe_split(raw: Union[str, List[str]]) -> List[str]:
-        if isinstance(raw, str):
-            return deserialize_lines(raw, trim=True)
-        else:
-            return raw
+    def eq(a: str, b: str) -> bool:
+        return a.replace("\r\n", "\n") == b.replace("\r\n", "\n")
 
     async with app_all_clipboards.run_test() as pilot:
         ta = app_all_clipboards.query_one("#ta", expect_type=TextEditor)
         ti = ta.text_input
         ta.text = original_text
-        ta.cursor = starting_cursor
-        ta.selection_anchor = starting_anchor
+        ta.selection = starting_selection
 
         await pilot.press("ctrl+c")
-        assert _maybe_split(ti.clipboard) == expected_clipboard
-        assert ta.selection_anchor == starting_anchor
-        assert ta.cursor == starting_cursor
+        assert eq(ti.clipboard, expected_clipboard)
+        assert ta.selection == starting_selection
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
-        assert _maybe_split(ti.clipboard) == expected_clipboard
-        assert ta.selection_anchor is None
-        assert ta.cursor == starting_cursor
+        assert eq(ti.clipboard, expected_clipboard)
+        assert ta.selection == Selection(starting_selection.end, starting_selection.end)
         assert ta.text == original_text
 
         await pilot.press("ctrl+a")
-        assert ta.selection_anchor == Cursor(0, 0)
-        assert ta.cursor == Cursor(
-            len(original_text.splitlines()) - 1, len(original_text.splitlines()[-1])
+        assert ta.selection == Selection(
+            (0, 0),
+            (len(original_text.splitlines()) - 1, len(original_text.splitlines()[-1])),
         )
-        assert _maybe_split(ti.clipboard) == expected_clipboard
+        assert eq(ti.clipboard, expected_clipboard)
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
-        assert ta.selection_anchor is None
-        assert ta.cursor == Cursor(
-            len(expected_clipboard) - 1, len(expected_clipboard[-1])
-        )
-        assert _maybe_split(ti.clipboard) == expected_clipboard
-        assert ta.text == "\n".join([line.strip() for line in expected_clipboard])
+        assert ta.selection == Selection(expected_paste_loc, expected_paste_loc)
+        assert eq(ti.clipboard, expected_clipboard)
+        assert ta.text == expected_clipboard
 
         await pilot.press("ctrl+a")
         await pilot.press("ctrl+x")
-        assert ta.selection_anchor is None
-        assert ta.cursor == Cursor(0, 0)
-        assert _maybe_split(ti.clipboard) == expected_clipboard
+        assert ta.selection == Selection((0, 0), (0, 0))
+        assert eq(ti.clipboard, expected_clipboard)
         assert ta.text == ""
 
         await pilot.press("ctrl+v")
-        assert ta.selection_anchor is None
-        assert _maybe_split(ti.clipboard) == expected_clipboard
-        assert ta.text == "\n".join([line.rstrip() for line in expected_clipboard])
-        assert ta.cursor == Cursor(
-            len(expected_clipboard) - 1, len(expected_clipboard[-1])
-        )
+        assert eq(ti.clipboard, expected_clipboard)
+        assert ta.text == expected_clipboard
+        assert ta.selection == Selection(expected_paste_loc, expected_paste_loc)
 
 
 @pytest.mark.asyncio
@@ -445,7 +359,7 @@ async def test_undo_redo(app: App) -> None:
         assert len(ti.undo_stack) == 2
         assert ti.undo_stack[-1].text == "foo"
         assert ta.text == "foo"
-        assert ta.cursor == Cursor(0, 3)
+        assert ta.selection == Selection((0, 3), (0, 3))
         assert ti.redo_stack
         assert len(ti.redo_stack) == 1
         assert ti.redo_stack[-1].text == "foo\nbar"
@@ -455,7 +369,7 @@ async def test_undo_redo(app: App) -> None:
         assert len(ti.undo_stack) == 1
         assert ti.undo_stack[-1].text == ""
         assert ta.text == ""
-        assert ta.cursor == Cursor(0, 0)
+        assert ta.selection == Selection((0, 0), (0, 0))
         assert ti.redo_stack
         assert len(ti.redo_stack) == 2
         assert ti.redo_stack[-1].text == "foo"
@@ -465,7 +379,7 @@ async def test_undo_redo(app: App) -> None:
         assert len(ti.undo_stack) == 2
         assert ti.undo_stack[-1].text == "foo"
         assert ta.text == "foo"
-        assert ta.cursor == Cursor(0, 3)
+        assert ta.selection == Selection((0, 3), (0, 3))
         assert ti.redo_stack
         assert len(ti.redo_stack) == 1
         assert ti.redo_stack[-1].text == "foo\nbar"
@@ -479,25 +393,38 @@ async def test_undo_redo(app: App) -> None:
 
 
 @pytest.mark.parametrize(
-    "start_text,insert_text,cursor,selection,expected_text",
+    "start_text,insert_text,selection,expected_text",
     [
         (
             "select ",
             '"main"."drivers"."driverId"',
-            Cursor(0, 7),
-            None,
+            Selection((0, 7), (0, 7)),
             'select "main"."drivers"."driverId"',
         ),
         (
             "select , foo",
             '"main"."drivers"."driverId"',
-            Cursor(0, 7),
-            None,
+            Selection((0, 7), (0, 7)),
             'select "main"."drivers"."driverId", foo',
         ),
-        ("aaa\naaa\naaa\naaa", "bb", Cursor(2, 2), None, "aaa\naaa\naabba\naaa"),
-        ("aaa\naaa\naaa\naaa", "bb", Cursor(2, 2), Cursor(1, 1), "aaa\nabba\naaa"),
-        ("01234", "\nabc\n", Cursor(lno=0, pos=2), None, "01\nabc\n234"),
+        (
+            "aaa\naaa\naaa\naaa",
+            "bb",
+            Selection((2, 2), (2, 2)),
+            "aaa\naaa\naabba\naaa",
+        ),
+        (
+            "aaa\naaa\naaa\naaa",
+            "bb",
+            Selection((2, 2), (1, 1)),
+            "aaa\nabba\naaa",
+        ),
+        (
+            "01234",
+            "\nabc\n",
+            Selection((0, 2), (0, 2)),
+            "01\nabc\n234",
+        ),
     ],
 )
 @pytest.mark.asyncio
@@ -505,15 +432,13 @@ async def test_insert_text(
     app: App,
     start_text: str,
     insert_text: str,
-    cursor: Cursor,
-    selection: Union[Cursor, None],
+    selection: Selection,
     expected_text: str,
 ) -> None:
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = start_text
-        ta.cursor = cursor
-        ta.selection_anchor = selection
+        ta.selection = selection
         await pilot.pause()
 
         ta.insert_text_at_selection(insert_text)
@@ -527,7 +452,7 @@ async def test_toggle_comment(app: App) -> None:
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "one\ntwo\n\nthree"
-        ta.cursor = Cursor(0, 0)
+        ta.selection = Selection((0, 0), (0, 0))
         await pilot.pause()
 
         await pilot.press("ctrl+underscore")

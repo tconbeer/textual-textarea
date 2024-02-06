@@ -35,16 +35,16 @@ The TextArea is a Textual Widget. You can add it to a Textual
 app using `compose` or `mount`:
 
 ```python
-from textual_textarea import TextArea
+from textual_textarea import TextEditor
 from textual.app import App, ComposeResult
 
 class TextApp(App, inherit_bindings=False):
     def compose(self) -> ComposeResult:
-        yield TextArea(text="hi", language="python", theme="nord-darker", id="ta")
+        yield TextEditor(text="hi", language="python", theme="nord-darker", id="ta")
 
     def on_mount(self) -> None:
-        ta = self.query_one("#id", expect_type=TextArea)
-        ta.focus()
+        editor = self.query_one("#id", expect_type=TextEditor)
+        editor.focus()
 
 app = TextApp()
 app.run()
@@ -66,60 +66,52 @@ you must initialize your App with `inherit_bindings=False`** (as shown above), s
 The TextArea exposes a `text` property that contains the full text contained in the widget. You can retrieve or set the text by interacting with this property:
 
 ```python
-ta = self.query_one(TextArea)
-old_text = ta.text
-ta.text = "New Text!\n\nMany Lines!"
+editor = self.query_one(TextEditor)
+old_text = editor.text
+editor.text = "New Text!\n\nMany Lines!"
 ```
 
-Similarly, the TextArea exposes a `selected_text` property (read-only):
+Similarly, the TextEditor exposes a `selected_text` property (read-only):
 ```python
-ta = self.query_one(TextArea)
-selection = ta.selected_text
+editor = self.query_one(TextEditor)
+selection = editor.selected_text
 ```
 
 #### Inserting Text
 
 You can insert text at the current selection:
 ```python
-ta = self.query_one(TextArea)
-ta.text = "01234"
-ta.cursor = (0, 2)
-ta.insert_text_at_selection("\nabc\n")
-assert ta.text == "01\nabc\n234"
-assert ta.cursor == Cursor(lno=2, pos=0)
+editor = self.query_one(TextEditor)
+editor.text = "01234"
+editor.selection = Selection((0, 2), (0, 2))
+editor.insert_text_at_selection("\nabc\n")
+assert editor.text == "01\nabc\n234"
+assert editor.selection == Selection((2, 0), (2, 0))
 ```
 
 #### Getting and Setting The Cursor Position
 
-The TextArea exposes a `cursor` property that returns a NamedTuple with the position of the cursor. The tuple is (line_number, x_pos):
+The TextEditor exposes a `selection` property that returns a textual.widgets.text_area.Selection:
 
 ```python
-ta = self.query_one(TextArea)
-old_cursor = ta.cursor
-ta.cursor = (999, 0)  # the cursor will move as close to line 999, pos 0 as possible
-cursor_line_number = ta.cursor.lno
-cursor_x_position = ta.cursor.pos
+editor = self.query_one(TextEditor)
+old_selection = editor.selection
+editor.selection = Selection((999, 0),(999, 0))  # the cursor will move as close to line 999, pos 0 as possible
+cursor_line_number = editor.selection.end[0]
+cursor_x_position = editor.selection.end[1]
 ```
 
-Similarly, there is a `selection_anchor` property (`Union[None, Cursor]`):
-
-```python
-ta = self.query_one(TextArea)
-anchor = ta.selection_anchor # will be None if no text is selected
-ta.selection_anchor = (999, 0)  # the anchor will move as close to line 999, pos 0 as possible
-ta.selection_anchor = None # the selection will be cleared
-```
 
 #### Getting and Setting The Language
 
-Syntax highlighting and comment insertion depends on the configured language for the TextArea.
+Syntax highlighting and comment insertion depends on the configured language for the TextEditor.
 
-The TextArea exposes a `language` property that returns `None` or a string that is equal to the short name of the [Pygments lexer](https://pygments.org/docs/lexers/) for the currently configured language:
+The TextArea exposes a `language` property that returns `None` or a string that is equal to the short name of an installed tree-sitter language:
 
 ```python
-ta = self.query_one(TextArea)
-old_language = ta.language
-ta.language = "python"
+editor = self.query_one(TextEditor)
+old_language = editor.language
+editor.language = "python"
 ```
 
 #### Getting Theme Colors
@@ -127,23 +119,23 @@ ta.language = "python"
 If you would like the rest of your app to match the colors from the TextArea's theme, they are exposed via the `theme_colors` property.
 
 ```python
-ta = self.query_one(TextArea)
-color = ta.theme_colors.contrast_text_color
-bgcolor = ta.theme_colors.bgcolor
-highlight = ta.theme_colors.selection_bgcolor
+editor = self.query_one(TextEditor)
+color = editor.theme_colors.contrast_text_color
+bgcolor = editor.theme_colors.bgcolor
+highlight = editor.theme_colors.selection_bgcolor
 ```
 
 
 #### Adding Bindings and other Behavior
 
-You can subclass TextArea to add your own behavior. This snippet adds an action that posts a Submitted message containing the text of the TextArea when the user presses <kbd>ctrl+j</kbd>:
+You can subclass TextEditor to add your own behavior. This snippet adds an action that posts a Submitted message containing the text of the TextEditor when the user presses <kbd>ctrl+j</kbd>:
 
 ```python
 from textual.message import Message
-from textual_textarea import TextArea
+from textual_textarea import TextEditor
 
 
-class CodeEditor(TextArea):
+class CodeEditor(TextEditor):
     BINDINGS = [
         ("ctrl+j", "submit", "Run Query"),
     ]
