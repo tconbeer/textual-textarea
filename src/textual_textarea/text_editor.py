@@ -5,7 +5,7 @@ from collections import deque
 from dataclasses import dataclass
 from math import ceil, floor
 from os.path import expanduser
-from typing import Any, Callable, Deque, List, Literal, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Sequence
 
 import pyperclip
 from rich.console import RenderableType
@@ -31,6 +31,9 @@ from textual_textarea.messages import (
     TextAreaSaved,
 )
 from textual_textarea.path_input import PathInput, path_completer
+
+if TYPE_CHECKING:
+    from tree_sitter import Node, Query
 
 BRACKETS = {
     "(": ")",
@@ -766,7 +769,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         indent_level = len(line) - len(line.lstrip(indent_char))
         return indent_level
 
-    def _get_selected_lines(self) -> Tuple[List[str], Location, Location]:
+    def _get_selected_lines(self) -> tuple[list[str], Location, Location]:
         [first, last] = sorted([self.selection.start, self.selection.end])
         lines = [self.document.get_line(i) for i in range(first[0], last[0] + 1)]
         return lines, first, last
@@ -804,11 +807,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     def __init__(
         self,
         *children: Widget,
-        name: Union[str, None] = None,
-        id: Union[str, None] = None,
-        classes: Union[str, None] = None,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
         disabled: bool = False,
-        language: Union[str, None] = None,
+        language: str | None = None,
         theme: str = "monokai",
         text: str = "",
         use_system_clipboard: bool = True,
@@ -887,7 +890,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.text_input.selection = selection
 
     @property
-    def language(self) -> Union[str, None]:
+    def language(self) -> str | None:
         """
         Returns
             str | None: The Pygments short name of the active language
@@ -973,6 +976,39 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Restarts the blink of the cursor
         """
         self.text_input._restart_blink()
+
+    def prepare_query(self, source: str) -> "Query" | None:
+        """
+        Build a Query from source. The Query can be used with self.query_syntax_tree
+
+        Args:
+            source (str): A tree-sitter query. See
+            https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax
+        """
+        return self.text_input.document.prepare_query(query=source)
+
+    def query_syntax_tree(
+        self,
+        query: "Query",
+        start_point: tuple[int, int] | None = None,
+        end_point: tuple[int, int] | None = None,
+    ) -> list[tuple["Node", str]]:
+        """
+        Query the tree-sitter syntax tree.
+
+        Args:
+            query (Query): The tree-sitter Query to perform.
+            start_point (tuple[int, int] | None): The (row, column byte) to start the
+                query at.
+            end_point (tuple[int, int] | None): The (row, column byte) to end the
+                query at.
+
+        Returns:
+            A tuple containing the nodes and text captured by the query.
+        """
+        return self.text_input.document.query_syntax_tree(
+            query=query, start_point=start_point, end_point=end_point
+        )
 
     def compose(self) -> ComposeResult:
         with TextContainer():
