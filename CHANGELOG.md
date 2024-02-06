@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-02-06
+
 -   Bumps textual dependency to >=0.48.1
 -   Breaking change: Renames the main class from TextArea to TextEditor, to avoid naming conflicts with the built-in TextArea widget (which caused issues with selectors, CSS, etc.).
 -   Breaking change: Replaces the `cursor` and `selection_anchor` API with `selection`.
@@ -218,7 +220,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.11.0...HEAD
+
+[0.11.0]: https://github.com/tconbeer/textual-textarea/compare/0.10.0...0.11.0
 
 [0.10.0]: https://github.com/tconbeer/textual-textarea/compare/0.9.5...0.10.0
 

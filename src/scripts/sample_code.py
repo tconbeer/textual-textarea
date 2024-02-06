@@ -8,7 +8,6 @@ class TextApp(App, inherit_bindings=False):
             language="python",
             theme="monokai",
             use_system_clipboard=True,
-            id="ta",
         )
         yield self.editor
 
