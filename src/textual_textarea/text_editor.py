@@ -33,7 +33,7 @@ from textual_textarea.messages import (
 from textual_textarea.path_input import PathInput, path_completer
 
 if TYPE_CHECKING:
-    from tree_sitter import Node, Query, Tree
+    from tree_sitter import Node, Parser, Query, Tree
 
 BRACKETS = {
     "(": ")",
@@ -1032,6 +1032,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         if isinstance(self.text_input.document, SyntaxAwareDocument):
             return self.text_input.document._syntax_tree
+        else:
+            return None
+
+    @property
+    def parser(self) -> "Parser" | None:
+        if isinstance(self.text_input.document, SyntaxAwareDocument):
+            return self.text_input.document._parser
         else:
             return None
 
