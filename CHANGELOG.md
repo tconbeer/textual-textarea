@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Adds a `syntax_tree` property to the `CodeEditor` class to return the document's tree-sitter syntax tree.
+
 ## [0.11.0] - 2024-02-06
 
 -   Bumps textual dependency to >=0.48.1
