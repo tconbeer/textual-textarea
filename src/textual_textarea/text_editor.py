@@ -18,7 +18,7 @@ from textual.reactive import Reactive, reactive
 from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Input, Label, OptionList, TextArea
-from textual.widgets.text_area import Location, Selection
+from textual.widgets.text_area import Location, Selection, SyntaxAwareDocument
 
 from textual_textarea.autocomplete import CompletionList
 from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
@@ -33,7 +33,7 @@ from textual_textarea.messages import (
 from textual_textarea.path_input import PathInput, path_completer
 
 if TYPE_CHECKING:
-    from tree_sitter import Node, Query
+    from tree_sitter import Node, Query, Tree
 
 BRACKETS = {
     "(": ")",
@@ -1024,6 +1024,16 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         return self.text_input.document.query_syntax_tree(
             query=query, start_point=start_point, end_point=end_point
         )
+
+    @property
+    def syntax_tree(self) -> "Tree" | None:
+        """
+        Returns the document's syntax tree.
+        """
+        if isinstance(self.text_input.document, SyntaxAwareDocument):
+            return self.text_input.document._syntax_tree
+        else:
+            return None
 
     def compose(self) -> ComposeResult:
         with TextContainer():
