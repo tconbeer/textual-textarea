@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Adds a `parser` property to the `CodeEditor` class to return the document's tree-sitter parser.
+
 ## [0.11.1] - 2024-02-08
 
 -   Adds a `syntax_tree` property to the `CodeEditor` class to return the document's tree-sitter syntax tree.
