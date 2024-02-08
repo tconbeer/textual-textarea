@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.1] - 2024-02-08
+
 -   Adds a `syntax_tree` property to the `CodeEditor` class to return the document's tree-sitter syntax tree.
 
 ## [0.11.0] - 2024-02-06
@@ -222,7 +224,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.11.1...HEAD
+
+[0.11.1]: https://github.com/tconbeer/textual-textarea/compare/0.11.0...0.11.1
 
 [0.11.0]: https://github.com/tconbeer/textual-textarea/compare/0.10.0...0.11.0
 
