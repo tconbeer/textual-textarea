@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   No longer changes focus on `escape` (regression since 0.11.0)
+
 ## [0.11.2] - 2024-02-08
 
 -   Adds a `parser` property to the `CodeEditor` class to return the document's tree-sitter parser.

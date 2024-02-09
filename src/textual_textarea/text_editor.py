@@ -261,6 +261,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self._handle_slash(event)
         elif event.key in ("full_stop", "colon"):
             self._handle_separator(event)
+        elif event.key == "escape":
+            self._handle_escape(event)
         elif event.character and event.is_printable:
             self._handle_printable_character(event)
         else:
@@ -623,6 +625,17 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self.completer_active = "member"
         prefix = self._get_word_before_cursor(event)
         self.post_message(self.ShowCompletionList(prefix=prefix))
+
+    def _handle_escape(self, event: events.Key) -> None:
+        """
+        starting in textual 0.49, escape is handled by on_key instead of
+        a binding, so we inherited behavior we don't want. Trap this event
+        and hide the completion list.
+        """
+        event.stop()
+        event.prevent_default()
+        self.selection = Selection(self.selection.end, self.selection.end)
+        self.post_message(TextAreaHideCompletionList())
 
     def _handle_slash(self, event: events.Key) -> None:
         event.stop()
