@@ -33,7 +33,7 @@ types-pygments = "^2.16.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=7.3.1,<9.0.0"
-pytest-asyncio = "^0.21.0"
+pytest-asyncio = ">=0.21,<0.24"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
