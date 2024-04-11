@@ -1135,7 +1135,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             label = self.footer.query_one(Label)
             if message.validation_result and not message.validation_result.is_valid:
                 label.update(";".join(message.validation_result.failure_descriptions))
-            else:
+            elif message.validation_result and message.validation_result.is_valid:
                 label.update(abspath(message.input.value))
 
     @on(Input.Submitted, "#textarea__save_input")
