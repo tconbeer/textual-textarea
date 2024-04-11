@@ -4,7 +4,7 @@ import re
 from collections import deque
 from dataclasses import dataclass
 from math import ceil, floor
-from os.path import expanduser
+from os.path import abspath, expanduser
 from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Sequence
 
 import pyperclip
@@ -1136,7 +1136,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             if message.validation_result and not message.validation_result.is_valid:
                 label.update(";".join(message.validation_result.failure_descriptions))
             else:
-                label.update("")
+                label.update(abspath(message.input.value))
 
     @on(Input.Submitted, "#textarea__save_input")
     def save_file(self, message: Input.Submitted) -> None:
