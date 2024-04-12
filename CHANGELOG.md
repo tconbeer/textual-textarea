@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 -   Show the computed filepath in the Save and Open widgets ([#232](https://github.com/tconbeer/textual-textarea/issues/232) - thank you [@bjornasm](https://github.com/bjornasm)!).
+-   Fixes a crash from initializing the Error Modal incorrectly.
+-   Fixes a crash from saving to a path in a non-existent directory.
 
 ## [0.11.3] - 2024-02-09
 
