@@ -1158,6 +1158,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         message.stop()
         expanded_path = Path(message.input.value).expanduser()
         try:
+            expanded_path.parent.mkdir(parents=True, exist_ok=True)
             with open(expanded_path, "w") as f:
                 f.write(self.text)
         except OSError as e:
