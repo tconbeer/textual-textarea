@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+-   Show the computed filepath in the Save and Open widgets ([#232](https://github.com/tconbeer/textual-textarea/issues/232) - thank you [@bjornasm](https://github.com/bjornasm)!).
+
 ## [0.11.3] - 2024-02-09
 
 -   No longer changes focus on `escape` (regression since 0.11.0)

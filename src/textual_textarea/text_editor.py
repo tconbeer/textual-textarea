@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 from math import ceil, floor
-from os.path import abspath, expanduser
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Sequence
 
 import pyperclip
@@ -814,10 +815,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     """
 
     DEFAULT_CSS = """
-    #validation_label {
+    #textarea__save_open_input_label {
+        margin: 0 0 0 3;
+    }
+    .validation-error {
         color: $error;
         text-style: italic;
-        margin: 0 0 0 3;
     }
     """
 
@@ -1060,7 +1063,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             yield TextAreaPlus(language=self._language, text=self._initial_text)
             yield CompletionList()
         with FooterContainer(classes="hide"):
-            yield Label("", id="validation_label")
+            yield Label("", id="textarea__save_open_input_label")
 
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
@@ -1134,9 +1137,18 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         if message.input.id in ("textarea__save_input", "textarea__open_input"):
             label = self.footer.query_one(Label)
             if message.validation_result and not message.validation_result.is_valid:
+                label.add_class("validation-error")
                 label.update(";".join(message.validation_result.failure_descriptions))
             elif message.validation_result and message.validation_result.is_valid:
-                label.update(abspath(message.input.value))
+                action = "Saving to" if "save" in message.input.id else "Opening"
+                p = Path(message.input.value).expanduser().resolve()
+                with suppress(ValueError):
+                    p = Path("~") / p.relative_to(Path.home())
+                label.remove_class("validation-error")
+                label.update(f"{action} {p}")
+            else:
+                label.remove_class("validation-error")
+                label.update("")
 
     @on(Input.Submitted, "#textarea__save_input")
     def save_file(self, message: Input.Submitted) -> None:
@@ -1144,7 +1156,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Handle the submit event for the Save and Open modals.
         """
         message.stop()
-        expanded_path = expanduser(message.input.value)
+        expanded_path = Path(message.input.value).expanduser()
         try:
             with open(expanded_path, "w") as f:
                 f.write(self.text)
@@ -1164,7 +1176,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     @on(Input.Submitted, "#textarea__open_input")
     def open_file(self, message: Input.Submitted) -> None:
         message.stop()
-        expanded_path = expanduser(message.input.value)
+        expanded_path = Path(message.input.value).expanduser()
         try:
             with open(expanded_path, "r") as f:
                 contents = f.read()
