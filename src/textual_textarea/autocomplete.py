@@ -22,7 +22,7 @@ class Completion(Option):
     def __init__(
         self,
         prompt: RenderableType,
-        id: str | None = None,
+        id: str | None = None,  # noqa: A002
         disabled: bool = False,
         value: str | None = None,
     ) -> None:
@@ -52,7 +52,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             self.prefix = prefix
 
     INNER_CONTENT_WIDTH = 37  # should be 3 less than width for scroll bar.
-    open: Reactive[bool] = reactive(False)
+    is_open: Reactive[bool] = reactive(False)
     cursor_offset: tuple[int, int] = (0, 0)
     additional_x_offset: int = 0
 
@@ -60,7 +60,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         self,
         *content: NewOptionListContent,
         name: str | None = None,
-        id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
     ):
@@ -139,7 +139,7 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             items = [Completion(prompt=item[0], value=item[1]) for item in event.items]
 
         # set x offset if not already open.
-        if not self.open:
+        if not self.is_open:
             try:
                 x_offset = self._get_x_offset(
                     prefix_length=len(event.prefix),
@@ -165,10 +165,10 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
         self.add_options(items=items)
         self.action_first()
         self.additional_x_offset = additional_x_offset
-        self.open = True
+        self.is_open = True
 
-    def watch_open(self, open: bool) -> None:
-        if not open:
+    def watch_is_open(self, is_open: bool) -> None:
+        if not is_open:
             self.remove_class("open")
             self.additional_x_offset = 0
             return
