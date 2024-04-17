@@ -48,6 +48,7 @@ async def test_autocomplete(
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer
         ta.focus()
+        await pilot.pause()
 
         start_time = monotonic()
         await pilot.press("s")
@@ -116,6 +117,7 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
         ta.focus()
         test_path = str(data_dir / "test_validator")
         ta.text = test_path
+        await pilot.pause()
         ta.selection = Selection((0, len(test_path)), (0, len(test_path)))
 
         start_time = monotonic()
@@ -160,6 +162,7 @@ async def test_autocomplete_members(
         ta.focus()
         ta.text = text
         ta.selection = Selection((0, len(text)), (0, len(text)))
+        await pilot.pause()
         for key in keys:
             await pilot.press(key)
 
