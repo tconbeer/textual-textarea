@@ -99,7 +99,7 @@ class PathInput(Input):
         password: bool = False,
         *,
         name: str | None = None,
-        id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
         dir_okay: bool = True,

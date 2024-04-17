@@ -177,10 +177,10 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         text: str = "",
         *,
         language: str | None = None,
-        theme: str | None = None,
+        theme: str = "css",
         use_system_clipboard: bool = True,
         name: str | None = None,
-        id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
     ) -> None:
@@ -193,7 +193,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             classes=classes,
             disabled=disabled,
             soft_wrap=False,
-            tab_behaviour="indent",
+            tab_behavior="indent",
             show_line_numbers=True,
         )
         self.cursor_blink = False if self.app.is_headless else True
@@ -395,9 +395,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def action_select_word(self) -> None:
         self.post_message(TextAreaHideCompletionList())
         prev = self._get_character_before_cursor()
-        next = self._get_character_at_cursor()
+        next_char = self._get_character_at_cursor()
         at_start_of_word = self._word_pattern.match(prev) is None
-        at_end_of_word = self._word_pattern.match(next) is None
+        at_end_of_word = self._word_pattern.match(next_char) is None
         if at_start_of_word and not at_end_of_word:
             self.action_cursor_word_right(select=True)
         elif at_end_of_word and not at_start_of_word:
@@ -836,7 +836,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self,
         *children: Widget,
         name: str | None = None,
-        id: str | None = None,
+        id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
         language: str | None = None,
@@ -1082,7 +1082,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     @on(TextAreaHideCompletionList)
     def hide_completion_list(self, event: TextAreaHideCompletionList) -> None:
         event.stop()
-        self.completion_list.open = False
+        self.completion_list.is_open = False
         self.text_input.completer_active = None
 
     @on(TextAreaPlus.SelectionChanged)
@@ -1124,7 +1124,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         event.stop()
         value = getattr(event.option, "value", None) or str(event.option.prompt)
         self.text_input.replace_current_word(value)
-        self.completion_list.open = False
+        self.completion_list.is_open = False
         self.text_input.completer_active = None
 
     @on(PathInput.Cancelled)
@@ -1232,16 +1232,16 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             file_okay, dir_okay, must_exist = True, False, False
 
-        input = PathInput(
+        path_input = PathInput(
             id=f"textarea__{name}_input",
             placeholder=f"{name.capitalize()}: Enter file path OR press ESC to cancel",
             file_okay=file_okay,
             dir_okay=dir_okay,
             must_exist=must_exist,
         )
-        input.styles.background = self.theme_colors.bgcolor
-        input.styles.border = "round", self.theme_colors.contrast_text_color
-        input.styles.color = self.theme_colors.contrast_text_color
+        path_input.styles.background = self.theme_colors.bgcolor
+        path_input.styles.border = "round", self.theme_colors.contrast_text_color
+        path_input.styles.color = self.theme_colors.contrast_text_color
         self.footer.remove_class("hide")
-        self.footer.mount(input)
-        input.focus()
+        self.footer.mount(path_input)
+        path_input.focus()

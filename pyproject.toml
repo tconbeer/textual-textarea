@@ -15,19 +15,18 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-textual = { version = ">=0.48.1, <0.51.0", extras = ["syntax"] }
+textual = { version = "^0.56", extras = ["syntax"] }
 pyperclip = "^1.8.2"
-tree-sitter-languages = "<1.10.0" # 1.10 unavail on windows, macos on 1/30/24
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = "0.48.1"
+textual = "0.56.0"
 textual-dev = "^1.2.1"
 pyinstrument = "^4.6.2"
 
 [tool.poetry.group.static.dependencies]
 black = "^24.1.1"
-ruff = "^0.2.0"
+ruff = "^0.3"
 mypy = "^1.8.0"
 types-pygments = "^2.16.0.0"
 
@@ -36,7 +35,7 @@ pytest = ">=7.3.1,<9.0.0"
 pytest-asyncio = "^0.21.0"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["A", "B", "E", "F", "I"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -50,7 +50,7 @@ class ErrorModal(ModalScreen):
         header: str,
         error: BaseException,
         name: Union[str, None] = None,
-        id: Union[str, None] = None,
+        id: Union[str, None] = None,  # noqa: A002
         classes: Union[str, None] = None,
     ) -> None:
         super().__init__(name, id, classes)

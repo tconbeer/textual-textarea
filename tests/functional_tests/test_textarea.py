@@ -291,6 +291,7 @@ async def test_copy_paste(
         ta.selection = starting_selection
 
         await pilot.press("ctrl+c")
+        await pilot.pause()
         assert eq(ti.clipboard, expected_clipboard)
         assert ta.selection == starting_selection
         assert ta.text == original_text
