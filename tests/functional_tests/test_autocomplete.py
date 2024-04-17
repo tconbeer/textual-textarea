@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from time import monotonic
 from typing import Callable
 from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App
+from textual.message import Message
 from textual.widgets.text_area import Selection
 from textual_textarea import TextEditor
 
@@ -41,13 +43,20 @@ def member_completer() -> Callable[[str], list[tuple[str, str]]]:
 async def test_autocomplete(
     app: App, word_completer: Callable[[str], list[tuple[str, str]]]
 ) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer
         ta.focus()
+        await pilot.pause()
 
+        start_time = monotonic()
         await pilot.press("s")
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
+                break
             await pilot.pause()
         assert ta.text_input.completer_active == "word"
         assert ta.completion_list.is_open is True
@@ -102,15 +111,22 @@ async def test_autocomplete(
 
 @pytest.mark.asyncio
 async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.focus()
         test_path = str(data_dir / "test_validator")
         ta.text = test_path
+        await pilot.pause()
         ta.selection = Selection((0, len(test_path)), (0, len(test_path)))
 
+        start_time = monotonic()
         await pilot.press("slash")
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
+                break
             await pilot.pause()
         assert ta.text_input.completer_active == "path"
         assert ta.completion_list.is_open is True
@@ -139,15 +155,23 @@ async def test_autocomplete_members(
     keys: list[str],
     expected_prefix: str,
 ) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.member_completer = member_completer
         ta.focus()
         ta.text = text
         ta.selection = Selection((0, len(text)), (0, len(text)))
+        await pilot.pause()
         for key in keys:
             await pilot.press(key)
+
+        start_time = monotonic()
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
+                break
             await pilot.pause()
 
         member_completer.assert_called_with(expected_prefix)
