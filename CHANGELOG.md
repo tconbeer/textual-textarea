@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.12.0] - 2024-04-17
+
 -   Show the computed filepath in the Save and Open widgets ([#232](https://github.com/tconbeer/textual-textarea/issues/232) - thank you [@bjornasm](https://github.com/bjornasm)!).
 -   Fixes a crash from initializing the Error Modal incorrectly.
 -   Fixes a crash from saving to a path in a non-existent directory.
@@ -236,7 +238,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.11.3...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.12.0...HEAD
+
+[0.12.0]: https://github.com/tconbeer/textual-textarea/compare/0.11.3...0.12.0
 
 [0.11.3]: https://github.com/tconbeer/textual-textarea/compare/0.11.2...0.11.3
 
