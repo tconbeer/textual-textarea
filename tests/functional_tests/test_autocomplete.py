@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from time import monotonic
 from typing import Callable
 from unittest.mock import MagicMock
 
@@ -46,8 +47,11 @@ async def test_autocomplete(
         ta.word_completer = word_completer
         ta.focus()
 
+        start_time = monotonic()
         await pilot.press("s")
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
             await pilot.pause()
         assert ta.text_input.completer_active == "word"
         assert ta.completion_list.is_open is True
@@ -109,8 +113,11 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
         ta.text = test_path
         ta.selection = Selection((0, len(test_path)), (0, len(test_path)))
 
+        start_time = monotonic()
         await pilot.press("slash")
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
             await pilot.pause()
         assert ta.text_input.completer_active == "path"
         assert ta.completion_list.is_open is True
@@ -147,7 +154,11 @@ async def test_autocomplete_members(
         ta.selection = Selection((0, len(text)), (0, len(text)))
         for key in keys:
             await pilot.press(key)
+
+        start_time = monotonic()
         while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
             await pilot.pause()
 
         member_completer.assert_called_with(expected_prefix)
