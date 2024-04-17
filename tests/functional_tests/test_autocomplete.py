@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App
+from textual.message import Message
 from textual.widgets.text_area import Selection
 from textual_textarea import TextEditor
 
@@ -42,7 +43,8 @@ def member_completer() -> Callable[[str], list[tuple[str, str]]]:
 async def test_autocomplete(
     app: App, word_completer: Callable[[str], list[tuple[str, str]]]
 ) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer
         ta.focus()
@@ -51,6 +53,8 @@ async def test_autocomplete(
         await pilot.press("s")
         while ta.completion_list.is_open is False:
             if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
                 break
             await pilot.pause()
         assert ta.text_input.completer_active == "word"
@@ -106,7 +110,8 @@ async def test_autocomplete(
 
 @pytest.mark.asyncio
 async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.focus()
         test_path = str(data_dir / "test_validator")
@@ -117,6 +122,8 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
         await pilot.press("slash")
         while ta.completion_list.is_open is False:
             if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
                 break
             await pilot.pause()
         assert ta.text_input.completer_active == "path"
@@ -146,7 +153,8 @@ async def test_autocomplete_members(
     keys: list[str],
     expected_prefix: str,
 ) -> None:
-    async with app.run_test() as pilot:
+    messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.member_completer = member_completer
         ta.focus()
@@ -158,6 +166,8 @@ async def test_autocomplete_members(
         start_time = monotonic()
         while ta.completion_list.is_open is False:
             if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
                 break
             await pilot.pause()
 
