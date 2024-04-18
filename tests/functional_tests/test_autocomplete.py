@@ -48,7 +48,8 @@ async def test_autocomplete(
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer
         ta.focus()
-        await pilot.pause()
+        while ta.word_completer is None:
+            await pilot.pause()
 
         start_time = monotonic()
         await pilot.press("s")
@@ -160,6 +161,8 @@ async def test_autocomplete_members(
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.member_completer = member_completer
         ta.focus()
+        while ta.member_completer is None:
+            await pilot.pause()
         ta.text = text
         ta.selection = Selection((0, len(text)), (0, len(text)))
         await pilot.pause()
