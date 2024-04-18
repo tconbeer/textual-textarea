@@ -443,16 +443,21 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                     )
             # add comment tokens to all lines
             else:
-                indent = min(
+                comment_indent = min(
                     [indent for indent, line in zip(indents, stripped_lines) if line]
                 )
+                insertion = f"{self.inline_comment_marker} "
                 for lno, stripped_line in enumerate(stripped_lines, start=first[0]):
                     if stripped_line:
-                        self.insert(
-                            f"{self.inline_comment_marker} ",
-                            location=(lno, indent),
-                            maintain_selection_offset=True,
-                        )
+                        # insert one character at a time, to create a single undo-able
+                        # batch of edits.
+                        # See https://github.com/Textualize/textual/issues/4428
+                        for i, char in enumerate(insertion):
+                            self.insert(
+                                char,
+                                location=(lno, comment_indent + i),
+                                maintain_selection_offset=True,
+                            )
 
     def action_undo(self) -> None:
         self.post_message(TextAreaHideCompletionList())
