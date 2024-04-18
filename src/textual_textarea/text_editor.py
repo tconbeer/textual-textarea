@@ -86,8 +86,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         Binding("ctrl+right", "cursor_word_right", "cursor word right", show=False),
         Binding("home", "cursor_line_start", "cursor line start", show=False),
         Binding("end", "cursor_line_end", "cursor line end", show=False),
-        Binding("ctrl+home", "cursor_doc_start", "cursor line start", show=False),
-        Binding("ctrl+end", "cursor_doc_end", "cursor line end", show=False),
+        Binding("ctrl+home", "cursor_doc_start", "cursor doc start", show=False),
+        Binding("ctrl+end", "cursor_doc_end", "cursor doc end", show=False),
         Binding("pageup", "cursor_page_up", "cursor page up", show=False),
         Binding("pagedown", "cursor_page_down", "cursor page down", show=False),
         # scrolling
@@ -114,6 +114,18 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         ),
         Binding(
             "shift+end", "cursor_line_end(True)", "cursor line end select", show=False
+        ),
+        Binding(
+            "ctrl+shift+home",
+            "cursor_doc_start(True)",
+            "select to cursor doc start",
+            show=False,
+        ),
+        Binding(
+            "ctrl+shift+end",
+            "cursor_doc_end(True)",
+            "select to cursor doc end",
+            show=False,
         ),
         Binding("shift+up", "cursor_up(True)", "cursor up select", show=False),
         Binding("shift+down", "cursor_down(True)", "cursor down select", show=False),
@@ -351,15 +363,21 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self.action_delete_line()
         self.delete(*self.selection)
 
-    def action_cursor_doc_start(self) -> None:
+    def action_cursor_doc_start(self, select: bool = False) -> None:
         self.post_message(TextAreaHideCompletionList())
-        self.selection = Selection(start=(0, 0), end=(0, 0))
+        if select:
+            self.selection = Selection(start=self.selection.start, end=(0, 0))
+        else:
+            self.selection = Selection(start=(0, 0), end=(0, 0))
 
-    def action_cursor_doc_end(self) -> None:
+    def action_cursor_doc_end(self, select: bool = False) -> None:
         self.post_message(TextAreaHideCompletionList())
         lno = self.document.line_count - 1
         loc = (lno, len(self.document.get_line(lno)))
-        self.selection = Selection(start=loc, end=loc)
+        if select:
+            self.selection = Selection(start=self.selection.start, end=loc)
+        else:
+            self.selection = Selection(start=loc, end=loc)
 
     def action_delete_line(self) -> None:
         self.post_message(TextAreaHideCompletionList())
