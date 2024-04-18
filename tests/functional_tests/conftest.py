@@ -1,4 +1,5 @@
 from typing import Type, Union
+from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App, ComposeResult
@@ -45,3 +46,17 @@ def app() -> App:
 def app_all_clipboards(request: pytest.FixtureRequest) -> App:
     app = TextEditorApp(use_system_clipboard=request.param)
     return app
+
+
+@pytest.fixture(autouse=True)
+def mock_pyperclip(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    mock = MagicMock()
+    mock.determine_clipboard.return_value = mock.copy, mock.paste
+
+    def set_paste(x: str) -> None:
+        mock.paste.return_value = x
+
+    mock.copy.side_effect = set_paste
+    monkeypatch.setattr("textual_textarea.text_editor.pyperclip", mock)
+
+    return mock
