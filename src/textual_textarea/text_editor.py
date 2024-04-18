@@ -950,7 +950,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         self.text_input.replace(
             text,
-            *list(sorted(self.text_input.selection)),
+            *self.text_input.selection,
             maintain_selection_offset=False,
         )
 

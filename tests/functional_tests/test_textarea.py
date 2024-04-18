@@ -297,6 +297,7 @@ async def test_copy_paste(
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
+        await pilot.pause()
         assert eq(ti.clipboard, expected_clipboard)
         assert ta.selection == Selection(starting_selection.end, starting_selection.end)
         assert ta.text == original_text
@@ -310,17 +311,20 @@ async def test_copy_paste(
         assert ta.text == original_text
 
         await pilot.press("ctrl+u")
+        await pilot.pause()
         assert ta.selection == Selection(expected_paste_loc, expected_paste_loc)
         assert eq(ti.clipboard, expected_clipboard)
         assert ta.text == expected_clipboard
 
         await pilot.press("ctrl+a")
         await pilot.press("ctrl+x")
+        await pilot.pause()
         assert ta.selection == Selection((0, 0), (0, 0))
         assert eq(ti.clipboard, expected_clipboard)
         assert ta.text == ""
 
         await pilot.press("ctrl+v")
+        await pilot.pause()
         assert eq(ti.clipboard, expected_clipboard)
         assert ta.text == expected_clipboard
         assert ta.selection == Selection(expected_paste_loc, expected_paste_loc)
