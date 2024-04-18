@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from contextlib import suppress
-from dataclasses import dataclass
 from math import ceil, floor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Sequence
@@ -53,12 +52,6 @@ MEMBER_PROG = re.compile(
 )
 WORD_PROG = re.compile(r"\w+")
 NON_WORD_CHAR_PROG = re.compile(r"\W")
-
-
-@dataclass
-class InputState:
-    text: str
-    selection: Selection
 
 
 class TextAreaPlus(TextArea, inherit_bindings=False):
@@ -216,11 +209,13 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def on_mount(self) -> None:
         self._determine_clipboard()
+        self.history.checkpoint()
 
     def on_blur(self, event: events.Blur) -> None:
         event.prevent_default()
-        self._pause_blink(visible=False)
         self.post_message(TextAreaHideCompletionList())
+        self._pause_blink(visible=False)
+        self.history.checkpoint()
 
     def on_key(self, event: events.Key) -> None:
         # Naked shift or ctrl keys on Windows get sent as NUL chars; Textual
@@ -292,6 +287,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                 self.action_select_all()
             self.consecutive_clicks += 1
         else:
+            self.history.checkpoint()
             self.double_click_location = target
             self.consecutive_clicks += 1
 
@@ -306,6 +302,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         event.prevent_default()
         event.stop()
         self.post_message(TextAreaHideCompletionList())
+        self.history.checkpoint()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
 
     @on(ClipboardReady)
@@ -337,6 +334,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_cut(self) -> None:
         self.post_message(TextAreaHideCompletionList())
+        self.history.checkpoint()
         self._copy_selection()
         if not self.selected_text:
             self.action_delete_line()
@@ -360,6 +358,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_delete_line(self) -> None:
         self.post_message(TextAreaHideCompletionList())
+        self.history.checkpoint()
         if self.selection.start != self.cursor_location:  # selection active
             self.delete(*self.selection, maintain_selection_offset=False)
         else:
@@ -413,6 +412,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def action_toggle_comment(self) -> None:
         self.post_message(TextAreaHideCompletionList())
         if self.inline_comment_marker:
+            self.history.checkpoint()
             lines, first, last = self._get_selected_lines()
             stripped_lines = [line.lstrip() for line in lines]
             indents = [len(line) - len(line.lstrip()) for line in lines]
@@ -863,8 +863,14 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             contents (str): A string (optionally containing newlines) to
                 set the contents of the TextEditor equal to.
         """
+        self.text_input.history.checkpoint()
+        self.text_input.replace(
+            contents,
+            start=(0, 0),
+            end=self.text_input.document.end,
+            maintain_selection_offset=False,
+        )
         self.text_input.move_cursor((0, 0))
-        self.text_input.text = contents
 
     @property
     def selected_text(self) -> str:
@@ -1032,18 +1038,18 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             return None
 
     def compose(self) -> ComposeResult:
-        with TextContainer():
-            yield TextAreaPlus(language=self._language, text=self._initial_text)
-            yield CompletionList()
-        with FooterContainer(classes="hide"):
+        self.text_container = TextContainer()
+        self.text_input = TextAreaPlus(language=self._language, text=self._initial_text)
+        self.completion_list = CompletionList()
+        self.footer = FooterContainer(classes="hide")
+        with self.text_container:
+            yield self.text_input
+            yield self.completion_list
+        with self.footer:
             yield Label("", id="textarea__save_open_input_label")
 
     def on_mount(self) -> None:
         self.styles.background = self.theme_colors.bgcolor
-        self.text_container = self.query_one(TextContainer)
-        self.text_input = self.query_one(TextAreaPlus)
-        self.completion_list = self.query_one(CompletionList)
-        self.footer = self.query_one(FooterContainer)
         self.theme = self._theme
 
     def on_focus(self) -> None:
