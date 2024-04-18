@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 -   Adds bindings for `ctrl+shift+home` and `ctrl+shift+end` to select while moving to document start/end.
+-   Uses the new, native undo and redo functionality provided by the Textual TextArea widget. This has some subtly different behavior ([#240](https://github.com/tconbeer/textual-textarea/issues/240).
 
 ## [0.12.0] - 2024-04-17
 

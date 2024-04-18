@@ -333,64 +333,34 @@ async def test_undo_redo(app: App) -> None:
         ti = ta.text_input
         assert ti
         assert ti.has_focus
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 1
-        assert ti.undo_stack[0].selection == Selection((0, 0), (0, 0))
-        assert not ti.redo_stack
 
         for char in "foo":
             await pilot.press(char)
         await pilot.pause(0.6)
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 2
-        assert ti.undo_stack[-1].text == "foo"
-        assert ti.undo_stack[-1].selection == Selection((0, 3), (0, 3))
 
         await pilot.press("enter")
         for char in "bar":
             await pilot.press(char)
         await pilot.pause(0.6)
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 3
-        assert ti.undo_stack[-1].text == "foo\nbar"
-        assert ti.undo_stack[-1].selection == Selection((1, 3), (1, 3))
 
         await pilot.press("ctrl+z")
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 2
-        assert ti.undo_stack[-1].text == "foo"
+        assert ta.text == "foo\n"
+        assert ta.selection == Selection((1, 0), (1, 0))
+
+        await pilot.press("ctrl+z")
         assert ta.text == "foo"
         assert ta.selection == Selection((0, 3), (0, 3))
-        assert ti.redo_stack
-        assert len(ti.redo_stack) == 1
-        assert ti.redo_stack[-1].text == "foo\nbar"
 
         await pilot.press("ctrl+z")
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 1
-        assert ti.undo_stack[-1].text == ""
         assert ta.text == ""
         assert ta.selection == Selection((0, 0), (0, 0))
-        assert ti.redo_stack
-        assert len(ti.redo_stack) == 2
-        assert ti.redo_stack[-1].text == "foo"
 
         await pilot.press("ctrl+y")
-        assert ti.undo_stack
-        assert len(ti.undo_stack) == 2
-        assert ti.undo_stack[-1].text == "foo"
         assert ta.text == "foo"
         assert ta.selection == Selection((0, 3), (0, 3))
-        assert ti.redo_stack
-        assert len(ti.redo_stack) == 1
-        assert ti.redo_stack[-1].text == "foo\nbar"
 
         await pilot.press("z")
-        await pilot.pause(0.6)
-        assert len(ti.undo_stack) == 3
-        assert ti.undo_stack[-1].text == "fooz"
         assert ta.text == "fooz"
-        assert not ti.redo_stack
 
 
 @pytest.mark.parametrize(

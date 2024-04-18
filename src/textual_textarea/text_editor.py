@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import re
-from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass
 from math import ceil, floor
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Literal, Sequence
 
 import pyperclip
 from rich.console import RenderableType
@@ -42,7 +41,6 @@ BRACKETS = {
     "{": "}",
 }
 CLOSERS = {'"': '"', "'": "'", **BRACKETS}
-UNDO_SIZE = 25
 
 # these patterns need to match a reversed string!
 DOUBLE_QUOTED_EXPR = r'"([^"\\]*(\\.[^"\\]*|""[^"\\]*)*)"(b?r|f|b|rb|&?u|@)?'
@@ -210,8 +208,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
-        self.undo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
-        self.redo_stack: Deque[InputState] = deque(maxlen=UNDO_SIZE)
         self.double_click_location: Location | None = None
         self.double_click_timer: Timer | None = None
         self.consecutive_clicks: int = 0
@@ -219,24 +215,12 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self.system_paste: Callable[[], str] | None = None
 
     def on_mount(self) -> None:
-        self.undo_timer = self.set_interval(
-            interval=0.3,
-            callback=self._create_undo_snapshot,
-            name="undo_timer",
-            pause=not self.has_focus,
-        )
         self._determine_clipboard()
-        self._create_undo_snapshot()
 
     def on_blur(self, event: events.Blur) -> None:
         event.prevent_default()
         self._pause_blink(visible=False)
         self.post_message(TextAreaHideCompletionList())
-        self._create_undo_snapshot()
-        self.undo_timer.pause()
-
-    def on_focus(self) -> None:
-        self.undo_timer.reset()
 
     def on_key(self, event: events.Key) -> None:
         # Naked shift or ctrl keys on Windows get sent as NUL chars; Textual
@@ -248,7 +232,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             event.prevent_default()
             return
 
-        self.undo_timer.reset()
         if event.key in (
             "apostrophe",
             "quotation_mark",
@@ -282,7 +265,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self.post_message(TextAreaHideCompletionList())
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
-        self.undo_timer.reset()
         self.post_message(TextAreaHideCompletionList())
         target = self.get_target_document_location(event)
         if (
@@ -310,7 +292,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                 self.action_select_all()
             self.consecutive_clicks += 1
         else:
-            self._create_undo_snapshot()
             self.double_click_location = target
             self.consecutive_clicks += 1
 
@@ -325,7 +306,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         event.prevent_default()
         event.stop()
         self.post_message(TextAreaHideCompletionList())
-        self._create_undo_snapshot()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
 
     @on(ClipboardReady)
@@ -357,7 +337,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_cut(self) -> None:
         self.post_message(TextAreaHideCompletionList())
-        self._create_undo_snapshot()
         self._copy_selection()
         if not self.selected_text:
             self.action_delete_line()
@@ -381,7 +360,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_delete_line(self) -> None:
         self.post_message(TextAreaHideCompletionList())
-        self._create_undo_snapshot()
         if self.selection.start != self.cursor_location:  # selection active
             self.delete(*self.selection, maintain_selection_offset=False)
         else:
@@ -478,23 +456,11 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_undo(self) -> None:
         self.post_message(TextAreaHideCompletionList())
-        self._create_undo_snapshot()
-        if len(self.undo_stack) > 1:
-            # we just took a snapshot, so the current state is
-            # on the stack.
-            current_state = self.undo_stack.pop()
-            self.redo_stack.append(current_state)
-            prev_state = self.undo_stack[-1]
-            self.text = prev_state.text
-            self.selection = prev_state.selection
+        super().action_undo()
 
     def action_redo(self) -> None:
         self.post_message(TextAreaHideCompletionList())
-        if self.redo_stack:
-            state = self.redo_stack.pop()
-            self.undo_stack.append(state)
-            self.text = state.text
-            self.selection = state.selection
+        super().action_redo()
 
     def _clear_double_click(self) -> None:
         self.consecutive_clicks = 0
@@ -516,22 +482,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             except pyperclip.PyperclipException:
                 # no system clipboard; common in CI runners
                 self.post_message(TextAreaClipboardError(action="copy"))
-
-    def _create_undo_snapshot(self) -> None:
-        self.undo_timer.reset()
-        new_snapshot = InputState(
-            text=self.text,
-            selection=self.selection,
-        )
-        if self.undo_stack and self.undo_stack[-1] == new_snapshot:
-            return
-        elif self.undo_stack and self.undo_stack[-1].text == new_snapshot.text:
-            # overwrite the last checkpoint to just update the cursor
-            self.undo_stack[-1] = new_snapshot
-        else:
-            self.undo_stack.append(new_snapshot)
-            if self.redo_stack:
-                self.redo_stack = deque(maxlen=UNDO_SIZE)
 
     def _get_character_at_cursor(self) -> str:
         if self.cursor_at_end_of_line:
