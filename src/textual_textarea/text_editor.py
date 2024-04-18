@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from contextlib import suppress
-from dataclasses import dataclass
 from math import ceil, floor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Sequence
@@ -53,12 +52,6 @@ MEMBER_PROG = re.compile(
 )
 WORD_PROG = re.compile(r"\w+")
 NON_WORD_CHAR_PROG = re.compile(r"\W")
-
-
-@dataclass
-class InputState:
-    text: str
-    selection: Selection
 
 
 class TextAreaPlus(TextArea, inherit_bindings=False):
@@ -863,8 +856,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             contents (str): A string (optionally containing newlines) to
                 set the contents of the TextEditor equal to.
         """
+        self.text_input.replace(
+            contents,
+            start=(0, 0),
+            end=self.text_input.document.end,
+            maintain_selection_offset=False,
+        )
         self.text_input.move_cursor((0, 0))
-        self.text_input.text = contents
 
     @property
     def selected_text(self) -> str:
