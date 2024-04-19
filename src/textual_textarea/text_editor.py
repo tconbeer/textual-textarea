@@ -845,6 +845,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._language = language
         self._theme = theme
         self._initial_text = text
+        self._find_history: list[str] = []
         self.theme_colors = WidgetColors.from_theme(theme)
         self.use_system_clipboard = use_system_clipboard
         self.path_completer = path_completer
@@ -1213,6 +1214,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     @on(Input.Submitted, "#textarea__find_input")
     def find_next(self, message: Input.Submitted) -> None:
         message.stop()
+        message.input.checkpoint()  # type: ignore
         self.selection = Selection(start=self.selection.end, end=self.selection.end)
         self._find_next_after_cursor(value=message.value)
 
@@ -1246,7 +1248,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             find_input.focus()
             return
         self._clear_footer_input()
-        find_input = FindInput()
+        find_input = FindInput(history=self._find_history)
         self._mount_footer_input(input_widget=find_input)
 
     def action_goto_line(self) -> None:
