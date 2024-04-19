@@ -20,10 +20,12 @@ from textual.widgets import Input, Label, OptionList, TextArea
 from textual.widgets.text_area import Location, Selection, SyntaxAwareDocument
 
 from textual_textarea.autocomplete import CompletionList
+from textual_textarea.cancellable_input import CancellableInput
 from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
+from textual_textarea.goto_input import GotoLineInput
 from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaHideCompletionList,
@@ -212,10 +214,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self.history.checkpoint()
 
     def on_blur(self, event: events.Blur) -> None:
-        event.prevent_default()
         self.post_message(TextAreaHideCompletionList())
-        self._pause_blink(visible=False)
-        self.history.checkpoint()
 
     def on_key(self, event: events.Key) -> None:
         # Naked shift or ctrl keys on Windows get sent as NUL chars; Textual
@@ -800,6 +799,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     BINDINGS = [
         Binding("ctrl+s", "save", "Save Query"),
         Binding("ctrl+o", "load", "Open Query"),
+        Binding("ctrl+g", "goto_line", "Go To Line"),
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
@@ -1106,19 +1106,27 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.completion_list.is_open = False
         self.text_input.completer_active = None
 
-    @on(PathInput.Cancelled)
+    @on(CancellableInput.Cancelled)
     def clear_footer(self) -> None:
         self._clear_footer_input()
         self.text_input.focus()
 
     @on(Input.Changed)
     def update_validation_label(self, message: Input.Changed) -> None:
-        if message.input.id in ("textarea__save_input", "textarea__open_input"):
+        if message.input.id in (
+            "textarea__save_input",
+            "textarea__open_input",
+            "textarea__gotoline_input",
+        ):
             label = self.footer.query_one(Label)
             if message.validation_result and not message.validation_result.is_valid:
                 label.add_class("validation-error")
                 label.update(";".join(message.validation_result.failure_descriptions))
-            elif message.validation_result and message.validation_result.is_valid:
+            elif (
+                message.validation_result
+                and message.validation_result.is_valid
+                and message.input.id in ("textarea__save_input", "textarea__open_input")
+            ):
                 action = "Saving to" if "save" in message.input.id else "Opening"
                 p = Path(message.input.value).expanduser().resolve()
                 with suppress(ValueError):
@@ -1173,6 +1181,17 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._clear_footer_input()
         self.text_input.focus()
 
+    @on(Input.Submitted, "#textarea__gotoline_input")
+    def goto_line(self, message: Input.Submitted) -> None:
+        message.stop()
+        try:
+            new_line = int(message.value) - 1
+        except (ValueError, TypeError):
+            return
+        self.text_input.move_cursor((new_line, 0), select=False)
+        self._clear_footer_input()
+        self.text_input.focus()
+
     def watch_theme(self, theme: str) -> None:
         try:
             ti = self.text_input
@@ -1188,15 +1207,25 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     def action_save(self) -> None:
         self._clear_footer_input()
-        self._mount_footer_input("save")
+        self._mount_footer_path_input("save")
 
     def action_load(self) -> None:
         self._clear_footer_input()
-        self._mount_footer_input("open")
+        self._mount_footer_path_input("open")
+
+    def action_goto_line(self) -> None:
+        self._clear_footer_input()
+        goto_input = GotoLineInput(
+            max_line_number=self.text_input.document.line_count,
+            current_line=self.selection.end[0] + 1,
+            min_line_number=1,
+            id="textarea__gotoline_input",
+        )
+        self._mount_footer_input(input_widget=goto_input)
 
     def _clear_footer_input(self) -> None:
         try:
-            self.footer.query_one(PathInput).remove()
+            self.footer.query_one(Input).remove()
         except Exception:
             pass
         try:
@@ -1205,7 +1234,15 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             pass
         self.footer.add_class("hide")
 
-    def _mount_footer_input(self, name: str) -> None:
+    def _mount_footer_input(self, input_widget: Input) -> None:
+        input_widget.styles.background = self.theme_colors.bgcolor
+        input_widget.styles.border = "round", self.theme_colors.contrast_text_color
+        input_widget.styles.color = self.theme_colors.contrast_text_color
+        self.footer.remove_class("hide")
+        self.footer.mount(input_widget)
+        input_widget.focus()
+
+    def _mount_footer_path_input(self, name: str) -> None:
         if name == "open":
             file_okay, dir_okay, must_exist = True, False, True
         else:
@@ -1218,9 +1255,4 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             dir_okay=dir_okay,
             must_exist=must_exist,
         )
-        path_input.styles.background = self.theme_colors.bgcolor
-        path_input.styles.border = "round", self.theme_colors.contrast_text_color
-        path_input.styles.color = self.theme_colors.contrast_text_color
-        self.footer.remove_class("hide")
-        self.footer.mount(path_input)
-        path_input.focus()
+        self._mount_footer_input(input_widget=path_input)

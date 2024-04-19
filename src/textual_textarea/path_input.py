@@ -5,10 +5,10 @@ from pathlib import Path
 
 from rich.highlighter import Highlighter
 from textual.binding import Binding
-from textual.message import Message
 from textual.suggester import Suggester
 from textual.validation import ValidationResult, Validator
-from textual.widgets import Input
+
+from textual_textarea.cancellable_input import CancellableInput
 
 
 def path_completer(prefix: str) -> list[tuple[str, str]]:
@@ -78,18 +78,10 @@ class PathValidator(Validator):
         return self.success()
 
 
-class PathInput(Input):
+class PathInput(CancellableInput):
     BINDINGS = [
-        Binding("escape", "cancel", "Cancel", show=False),
         Binding("tab", "complete", "Accept Completion", show=False),
     ]
-
-    class Cancelled(Message):
-        """
-        Posted when the user presses Esc to cancel the input.
-        """
-
-        pass
 
     def __init__(
         self,
@@ -120,9 +112,6 @@ class PathInput(Input):
             classes=classes,
             disabled=disabled,
         )
-
-    def action_cancel(self) -> None:
-        self.post_message(self.Cancelled())
 
     def action_complete(self) -> None:
         if self._suggestion and self._suggestion != self.value:
