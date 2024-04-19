@@ -18,7 +18,7 @@ class TextApp(App, inherit_bindings=False):
         height: 1fr;
     }
     Placeholder {
-        height: 1fr;
+        height: 0fr;
     }
     """
 
@@ -30,7 +30,7 @@ class TextApp(App, inherit_bindings=False):
         yield FocusablePlaceholder()
         self.editor = TextEditor(
             language=language,
-            theme="nord-darker",
+            theme="monokai",
             use_system_clipboard=True,
             id="ta",
         )
