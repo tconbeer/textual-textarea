@@ -99,3 +99,47 @@ async def test_find_history(app: App) -> None:
         assert find_input.value == "b"
         await pilot.press("down")
         assert find_input.value == ""
+
+
+@pytest.mark.asyncio
+async def test_find_with_f3(app: App) -> None:
+
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = "foo bar\n" * 50
+        await pilot.pause()
+        assert ta.selection.start == ta.selection.end == (0, 0)
+
+        # pressing f3 with no history brings up an empty find box
+        await pilot.press("f3")
+        find_input = app.query_one(FindInput)
+        assert find_input
+        assert find_input.has_focus
+        assert find_input.value == ""
+
+        await pilot.press("b")
+        assert find_input.has_focus
+        assert ta.selection.start == (0, 4)
+        assert ta.selection.end == (0, 5)
+
+        # pressing f3 from the find input finds the next match
+        await pilot.press("f3")
+        assert find_input.has_focus
+        assert ta.selection.start == (1, 4)
+        assert ta.selection.end == (1, 5)
+
+        # close the find input and navigate up one line
+        await pilot.press("escape")
+        await pilot.press("up")
+
+        # pressing f3 with history prepopulates the find input
+        await pilot.press("f3")
+        find_input = app.query_one(FindInput)
+        assert find_input.value == "b"
+        assert ta.selection.start == (1, 4)
+        assert ta.selection.end == (1, 5)
+
+        # pressing again advances to the next match
+        await pilot.press("f3")
+        assert ta.selection.start == (2, 4)
+        assert ta.selection.end == (2, 5)

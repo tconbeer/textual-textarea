@@ -802,6 +802,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Binding("ctrl+s", "save", "Save Query"),
         Binding("ctrl+o", "load", "Open Query"),
         Binding("ctrl+f", "find", "Find"),
+        Binding("f3", "find(True)", "Find Next"),
         Binding("ctrl+g", "goto_line", "Go To Line"),
         Binding("ctrl+q", "quit", "Quit"),
     ]
@@ -1239,7 +1240,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._clear_footer_input()
         self._mount_footer_path_input("open")
 
-    def action_find(self) -> None:
+    def action_find(self, prepopulate_from_history: bool = False) -> None:
         try:
             find_input = self.footer.query_one(FindInput)
         except Exception:
@@ -1248,7 +1249,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             find_input.focus()
             return
         self._clear_footer_input()
-        find_input = FindInput(history=self._find_history)
+        if prepopulate_from_history and self._find_history:
+            value = self._find_history[-1]
+        else:
+            value = ""
+        find_input = FindInput(value=value, history=self._find_history)
         self._mount_footer_input(input_widget=find_input)
 
     def action_goto_line(self) -> None:

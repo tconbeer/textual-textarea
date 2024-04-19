@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from textual import on
 from textual.events import Blur, Key
+from textual.widgets import Input
 
 from textual_textarea.cancellable_input import CancellableInput
 
@@ -19,8 +20,8 @@ class FindInput(CancellableInput):
         self.history_index: int | None = None
 
     @on(Key)
-    def navigate_history(self, event: Key) -> None:
-        if event.key not in ("up", "down"):
+    def handle_special_keys(self, event: Key) -> None:
+        if event.key not in ("up", "down", "f3"):
             self.history_index = None
             return
         event.stop()
@@ -29,6 +30,8 @@ class FindInput(CancellableInput):
             self._handle_down()
         elif event.key == "up":
             self._handle_up()
+        elif event.key == "f3":
+            self.post_message(Input.Submitted(self, self.value))
 
     @on(Blur)
     def handle_blur(self) -> None:
