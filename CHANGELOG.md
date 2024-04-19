@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.13.0] - 2024-04-19
+
 -   Adds a "find" action with <kbd>ctrl+f</kbd> and "find next" action with <kbd>F3</kbd>.
 -   Adds "go to line" action with <kbd>ctrl+g</kbd>.
 -   Adds bindings for `ctrl+shift+home` and `ctrl+shift+end` to select while moving to document start/end.
@@ -243,7 +245,9 @@ All notable changes to this project will be documented in this file.
     support for syntax highlighting, themes, keyboard navigation, copy-paste, file
     opening and saving, and more!
 
-[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.13.0...HEAD
+
+[0.13.0]: https://github.com/tconbeer/textual-textarea/compare/0.12.0...0.13.0
 
 [0.12.0]: https://github.com/tconbeer/textual-textarea/compare/0.11.3...0.12.0
 
