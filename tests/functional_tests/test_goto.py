@@ -23,6 +23,5 @@ async def test_goto_line(app: App) -> None:
         await pilot.press("2")
         await pilot.press("enter")
 
-        print(app.focused)
         assert ta.text_input.has_focus
         assert ta.selection.start == ta.selection.end == (11, 0)
