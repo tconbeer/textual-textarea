@@ -350,12 +350,12 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def action_cursor_doc_end(self, select: bool = False) -> None:
         self.post_message(TextAreaHideCompletionList())
-        lno = self.document.line_count - 1
-        loc = (lno, len(self.document.get_line(lno)))
         if select:
-            self.selection = Selection(start=self.selection.start, end=loc)
+            self.selection = Selection(
+                start=self.selection.start, end=self.document.end
+            )
         else:
-            self.selection = Selection(start=loc, end=loc)
+            self.selection = Selection(start=self.document.end, end=self.document.end)
 
     def action_delete_line(self) -> None:
         self.post_message(TextAreaHideCompletionList())
