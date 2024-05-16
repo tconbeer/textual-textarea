@@ -1031,13 +1031,13 @@ testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jar
 
 [[package]]
 name = "textual"
-version = "0.58.0"
+version = "0.60.0"
 description = "Modern Text User Interface framework"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "textual-0.58.0-py3-none-any.whl", hash = "sha256:9daddf713cb64d186fa1ae647fea482dc84b643c9284132cd87adb99cd81d638"},
-    {file = "textual-0.58.0.tar.gz", hash = "sha256:5c8c3322308e2b932c4550b0ae9f70daebc39716de3f920831cda96d1640b383"},
+    {file = "textual-0.60.0-py3-none-any.whl", hash = "sha256:be7870ed12014cf7a91ea9f96a3c49b1a52f93e0e76686a5fa276951d65867a7"},
+    {file = "textual-0.60.0.tar.gz", hash = "sha256:5a9117d6fd48d105ba9671fe6eca8197d607fd2d20fe5405681621fc34b17cfe"},
 ]
 
 [package.dependencies]
@@ -1426,4 +1426,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "ad3aea8bf5657fb1ec7e95292f980d295c23e577911ce702b87f3b55dce1619f"
+content-hash = "3dc73ee4998e83362cdae0b972f8ece3446ccccfd582bb9ae5f6f82c349d3c7b"
