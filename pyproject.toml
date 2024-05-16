@@ -20,7 +20,7 @@ pyperclip = "^1.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = "0.60.0"
+textual = "0.60.1"
 textual-dev = "^1.2.1"
 pyinstrument = "^4.6.2"
 
