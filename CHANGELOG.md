@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.13.1] - 2024-06-28
 
+- Bumps the pyperclip version for improved clipboard support on Wayland (Linux) ([tconbeer/harlequin#585](https://github.com/tconbeer/harlequin/issues/585)).
+
 ## [0.13.0] - 2024-04-19
 
 - Adds a "find" action with <kbd>ctrl+f</kbd> and "find next" action with <kbd>F3</kbd>.
