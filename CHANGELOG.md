@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.0] - 2024-07-09
+
 ## [0.13.1] - 2024-06-28
 
 - Bumps the pyperclip version for improved clipboard support on Wayland (Linux) ([tconbeer/harlequin#585](https://github.com/tconbeer/harlequin/issues/585)).
@@ -249,7 +251,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.13.1...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/tconbeer/textual-textarea/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/tconbeer/textual-textarea/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/tconbeer/textual-textarea/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/tconbeer/textual-textarea/compare/0.11.3...0.12.0
