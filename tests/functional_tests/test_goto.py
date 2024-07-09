@@ -6,7 +6,6 @@ from textual_textarea.goto_input import GotoLineInput
 
 @pytest.mark.asyncio
 async def test_goto_line(app: App) -> None:
-
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "\n" * 50

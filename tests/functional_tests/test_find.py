@@ -6,7 +6,6 @@ from textual_textarea.find_input import FindInput
 
 @pytest.mark.asyncio
 async def test_find(app: App) -> None:
-
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "foo bar\n" * 50
@@ -50,7 +49,6 @@ async def test_find(app: App) -> None:
 
 @pytest.mark.asyncio
 async def test_find_history(app: App) -> None:
-
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "foo bar\n" * 50
@@ -103,7 +101,6 @@ async def test_find_history(app: App) -> None:
 
 @pytest.mark.asyncio
 async def test_find_with_f3(app: App) -> None:
-
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.text = "foo bar\n" * 50
