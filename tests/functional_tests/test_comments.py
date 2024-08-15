@@ -24,3 +24,6 @@ async def test_comments(app: App, language: str, expected_marker: str) -> None:
 
         await pilot.press("ctrl+underscore")  # alias for ctrl+/
         assert ta.text == f"{expected_marker}{original_text}"
+
+        await pilot.press("ctrl+underscore")  # alias for ctrl+/
+        assert ta.text == f"{original_text}"

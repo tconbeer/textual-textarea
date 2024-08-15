@@ -424,12 +424,15 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                     for line in stripped_lines
                 ]
             ):
+                marker_offset = len(self.inline_comment_marker)
                 offsets = [
                     (
                         0
                         if not line
                         else (
-                            2 if line[len(self.inline_comment_marker)].isspace() else 1
+                            marker_offset + 1
+                            if line[marker_offset].isspace()
+                            else marker_offset
                         )
                     )
                     for line in stripped_lines
