@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a bug where uncommenting a line using the `toggle_comment` action would leave behind a space in languages with comment markers that are longer than one character ([tconbeer/harlequin#616](https://github.com/tconbeer/harlequin/issues/616)).
+
 ## [0.14.0] - 2024-07-09
+
+- Updates dependencies and removes black in favor of the ruff formatter.
 
 ## [0.13.1] - 2024-06-28
 
