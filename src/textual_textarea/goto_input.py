@@ -54,7 +54,7 @@ class GotoLineInput(CancellableInput):
             validators=GotoLineValidator(
                 max_line_number=max_line_number, min_line_number=min_line_number
             ),
-            validate_on=["changed"],
+            validate_on={"changed"},
             id=id,
             classes=classes,
         )
