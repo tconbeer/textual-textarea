@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a TypeError raised by Textual >= v0.76 from the goto input validator.
+
 ## [0.14.1] - 2024-08-15
 
 - Fixes a bug where uncommenting a line using the `toggle_comment` action would leave behind a space in languages with comment markers that are longer than one character ([tconbeer/harlequin#616](https://github.com/tconbeer/harlequin/issues/616)).
