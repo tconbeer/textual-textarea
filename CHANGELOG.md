@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.2] - 2024-08-16
+
 - Fixes a TypeError raised by Textual >= v0.76 from the goto input validator.
 
 ## [0.14.1] - 2024-08-15
@@ -259,7 +261,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.1...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.2...HEAD
+[0.14.2]: https://github.com/tconbeer/textual-textarea/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/tconbeer/textual-textarea/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/tconbeer/textual-textarea/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/tconbeer/textual-textarea/compare/0.13.0...0.13.1
