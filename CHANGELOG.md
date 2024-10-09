@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.14.3] - 2024-10-09
 
+- Fixes a crash caused by pressing `ctrl+g` twice ([tconbeer/harlequin#654](https://github.com/tconbeer/harlequin/issues/654)).
+
 ## [0.14.2] - 2024-08-16
 
 - Fixes a TypeError raised by Textual >= v0.76 from the goto input validator.
