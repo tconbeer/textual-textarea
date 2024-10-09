@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.4] - 2024-10-09
+
 - Fixes a crash caused by copying or pasting with the system clipboard in some rare system configurations.
 
 ## [0.14.3] - 2024-10-09
@@ -267,7 +269,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.3...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.4...HEAD
+[0.14.4]: https://github.com/tconbeer/textual-textarea/compare/0.14.3...0.14.4
 [0.14.3]: https://github.com/tconbeer/textual-textarea/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/tconbeer/textual-textarea/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/tconbeer/textual-textarea/compare/0.14.0...0.14.1
