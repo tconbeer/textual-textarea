@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.3] - 2024-10-09
+
+- Fixes a crash caused by pressing `ctrl+g` twice ([tconbeer/harlequin#654](https://github.com/tconbeer/harlequin/issues/654)).
+
 ## [0.14.2] - 2024-08-16
 
 - Fixes a TypeError raised by Textual >= v0.76 from the goto input validator.
@@ -261,7 +265,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.2...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.3...HEAD
+[0.14.3]: https://github.com/tconbeer/textual-textarea/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/tconbeer/textual-textarea/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/tconbeer/textual-textarea/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/tconbeer/textual-textarea/compare/0.13.1...0.14.0
