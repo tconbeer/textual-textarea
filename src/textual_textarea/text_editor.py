@@ -382,7 +382,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         if self.use_system_clipboard and self.system_paste is not None:
             try:
                 self.clipboard = self.system_paste()
-            except pyperclip.PyperclipException:
+            except Exception:
                 # no system clipboard; common in CI runners. Use internal
                 # clipboard state of self.clipboard
                 self.post_message(TextAreaClipboardError(action="paste"))
@@ -489,7 +489,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         if self.use_system_clipboard and self.system_copy is not None:
             try:
                 self.system_copy(self.clipboard)
-            except pyperclip.PyperclipException:
+            except Exception:
                 # no system clipboard; common in CI runners
                 self.post_message(TextAreaClipboardError(action="copy"))
 
@@ -981,7 +981,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         if self.use_system_clipboard and self.text_input.system_copy is not None:
             try:
                 self.text_input.system_copy(text)
-            except pyperclip.PyperclipException:
+            except Exception:
                 self.post_message(TextAreaClipboardError(action="copy"))
 
     def pause_blink(self, visible: bool = True) -> None:
