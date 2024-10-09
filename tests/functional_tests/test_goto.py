@@ -24,3 +24,12 @@ async def test_goto_line(app: App) -> None:
 
         assert ta.text_input.has_focus
         assert ta.selection.start == ta.selection.end == (11, 0)
+
+        # ensure pressing ctrl+g twice doesn't crash
+
+        await pilot.press("ctrl+g")
+        goto_input = app.query_one(GotoLineInput)
+        assert goto_input.has_focus
+        await pilot.press("2")
+
+        await pilot.press("ctrl+g")

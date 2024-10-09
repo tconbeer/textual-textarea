@@ -10,6 +10,7 @@ import pyperclip
 from rich.console import RenderableType
 from textual import events, on, work
 from textual._cells import cell_len
+from textual._node_list import DuplicateIds
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
@@ -1260,6 +1261,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._mount_footer_input(input_widget=find_input)
 
     def action_goto_line(self) -> None:
+        try:
+            goto_input = self.footer.query_one(GotoLineInput)
+        except Exception:
+            pass
+        else:
+            goto_input.focus()
+            return
         self._clear_footer_input()
         goto_input = GotoLineInput(
             max_line_number=self.text_input.document.line_count,
@@ -1285,8 +1293,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         input_widget.styles.border = "round", self.theme_colors.contrast_text_color
         input_widget.styles.color = self.theme_colors.contrast_text_color
         self.footer.remove_class("hide")
-        self.footer.mount(input_widget)
-        input_widget.focus()
+        try:
+            self.footer.mount(input_widget)
+        except DuplicateIds:
+            return
+        else:
+            input_widget.focus()
 
     def _mount_footer_path_input(self, name: str) -> None:
         if name == "open":
