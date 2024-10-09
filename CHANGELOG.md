@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a crash caused by copying or pasting with the system clipboard in some rare system configurations.
+
 ## [0.14.3] - 2024-10-09
 
 - Fixes a crash caused by pressing `ctrl+g` twice ([tconbeer/harlequin#654](https://github.com/tconbeer/harlequin/issues/654)).
