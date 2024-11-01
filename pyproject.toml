@@ -25,7 +25,7 @@ textual-dev = "^1.2.1"
 pyinstrument = "^4.6.2"
 
 [tool.poetry.group.static.dependencies]
-ruff = "^0.5"
+ruff = ">=0.5,<0.8"
 mypy = "^1.10.0"
 types-pygments = "^2.16.0.0"
 
