@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 
 from textual.app import App, ComposeResult
-from textual.widgets import Placeholder
+from textual.widgets import Footer, Placeholder
 
 from textual_textarea import TextEditor
 
@@ -13,6 +13,7 @@ class FocusablePlaceholder(Placeholder, can_focus=True):
 
 
 class TextApp(App, inherit_bindings=False):
+    BINDINGS = [("ctrl+q", "quit")]
     CSS = """
     TextEditor {
         height: 1fr;
@@ -30,13 +31,17 @@ class TextApp(App, inherit_bindings=False):
         yield FocusablePlaceholder()
         self.editor = TextEditor(
             language=language,
-            theme="monokai",
             use_system_clipboard=True,
             id="ta",
         )
         yield self.editor
+        yield Footer()
+
+    def watch_theme(self, theme: str) -> None:
+        self.editor.theme = theme
 
     def on_mount(self) -> None:
+        self.theme = "gruvbox"
         self.editor.focus()
 
         def _completer(prefix: str) -> list[tuple[str, str]]:

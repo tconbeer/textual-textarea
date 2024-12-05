@@ -10,10 +10,8 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - textual[syntax]>=0.72.0
+          - textual[syntax]>=0.89.1
           - pytest
-          - hypothesis
-          - types-pygments
         args:
           - "--disallow-untyped-calls"
           - "--disallow-untyped-defs"

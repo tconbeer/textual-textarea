@@ -23,7 +23,7 @@ from textual.widgets.text_area import Location, Selection, SyntaxAwareDocument
 
 from textual_textarea.autocomplete import CompletionList
 from textual_textarea.cancellable_input import CancellableInput
-from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
+from textual_textarea.colors import text_area_theme_from_app_theme
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
@@ -789,7 +789,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
         theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
             e.g., "bw", "github-dark", "solarized-light".
-        theme_colors (WidgetColors): The colors extracted from the theme.
     """
 
     DEFAULT_CSS = """
@@ -799,6 +798,17 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     .validation-error {
         color: $error;
         text-style: italic;
+    }
+    Input.textarea--footer-input {
+        border: round $foreground;
+        color: $foreground;
+        background: $background;
+        &.-invalid {
+            border: round $error 60%;
+        }
+        &.-invalid:focus {
+            border: round $error;
+        }  
     }
     """
 
@@ -851,7 +861,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._theme = theme
         self._initial_text = text
         self._find_history: list[str] = []
-        self.theme_colors = WidgetColors.from_theme(theme)
         self.use_system_clipboard = use_system_clipboard
         self.path_completer = path_completer
         self.member_completer = member_completer
@@ -1059,7 +1068,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             yield self.footer_label
 
     def on_mount(self) -> None:
-        self.styles.background = self.theme_colors.bgcolor
         self.theme = self._theme
 
     def on_focus(self) -> None:
@@ -1231,10 +1239,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         if theme in ti.available_themes:
             ti.theme = theme
         else:
-            textarea_theme = text_area_theme_from_pygments_name(theme)
-            ti.register_theme(textarea_theme)
-            ti.theme = textarea_theme.name
-        self.theme_colors = WidgetColors.from_theme(theme)
+            css_vars = self.app.get_css_variables()
+            textarea_theme = text_area_theme_from_app_theme(theme, css_vars)
+            if textarea_theme is not None:
+                ti.register_theme(textarea_theme)
+                ti.theme = textarea_theme.name
 
     def action_save(self) -> None:
         self._clear_footer_input()
@@ -1257,7 +1266,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             value = self._find_history[-1]
         else:
             value = ""
-        find_input = FindInput(value=value, history=self._find_history)
+        find_input = FindInput(
+            value=value,
+            history=self._find_history,
+            classes="textarea--footer-input",
+        )
         self._mount_footer_input(input_widget=find_input)
 
     def action_goto_line(self) -> None:
@@ -1274,6 +1287,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             current_line=self.selection.end[0] + 1,
             min_line_number=1,
             id="textarea__gotoline_input",
+            classes="textarea--footer-input",
         )
         self._mount_footer_input(input_widget=goto_input)
 
@@ -1289,9 +1303,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.footer.add_class("hide")
 
     def _mount_footer_input(self, input_widget: Input) -> None:
-        input_widget.styles.background = self.theme_colors.bgcolor
-        input_widget.styles.border = "round", self.theme_colors.contrast_text_color
-        input_widget.styles.color = self.theme_colors.contrast_text_color
         self.footer.remove_class("hide")
         try:
             self.footer.mount(input_widget)
@@ -1312,6 +1323,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             file_okay=file_okay,
             dir_okay=dir_okay,
             must_exist=must_exist,
+            classes="textarea--footer-input",
         )
         self._mount_footer_input(input_widget=path_input)
 
