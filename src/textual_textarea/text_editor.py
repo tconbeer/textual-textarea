@@ -1011,7 +1011,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         query: "Query",
         start_point: tuple[int, int] | None = None,
         end_point: tuple[int, int] | None = None,
-    ) -> list[tuple["Node", str]]:
+    ) -> dict[str, list["Node"]]:
         """
         Query the tree-sitter syntax tree.
 
@@ -1023,7 +1023,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
                 query at.
 
         Returns:
-            A tuple containing the nodes and text captured by the query.
+            A dict mapping captured node names to lists of Nodes with that name
         """
         return self.text_input.document.query_syntax_tree(
             query=query, start_point=start_point, end_point=end_point

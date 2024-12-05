@@ -26,7 +26,7 @@ class TextApp(App, inherit_bindings=False):
         try:
             language = sys.argv[1]
         except IndexError:
-            language = "python"
+            language = "sql"
         yield FocusablePlaceholder()
         self.editor = TextEditor(
             language=language,

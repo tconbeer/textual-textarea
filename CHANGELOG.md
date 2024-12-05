@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Breaking:** changes function return signature `query_syntax_tree`.
+- **Breaking:** drops support for Python 3.8.
+- Adds support for Python 3.13.
+- Updates syntax highlighting language libraries.
+
 ## [0.14.4] - 2024-10-09
 
 - Fixes a crash caused by copying or pasting with the system clipboard in some rare system configurations.
