@@ -2,21 +2,16 @@ from __future__ import annotations
 
 from rich.style import Style
 from textual.color import Color
-from textual.theme import BUILTIN_THEMES
+from textual.theme import Theme
 from textual.widgets.text_area import TextAreaTheme
 
 
 def text_area_theme_from_app_theme(
-    theme_name: str, css_vars: dict[str, str]
-) -> TextAreaTheme | None:
+    theme_name: str, theme: Theme, css_vars: dict[str, str]
+) -> TextAreaTheme:
     builtin = TextAreaTheme.get_builtin_theme(theme_name)
     if builtin is not None:
         return builtin
-
-    try:
-        theme = BUILTIN_THEMES[theme_name]
-    except KeyError:
-        return None
 
     background_color = Color.parse(css_vars.get("background", "#000000"))
     foreground_color = Color.parse(css_vars.get("foreground", "#FFFFFF"))

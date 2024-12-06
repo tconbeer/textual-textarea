@@ -59,6 +59,7 @@ async def test_autocomplete(
                 print("\n".join([str(m) for m in messages]))
                 break
             await pilot.pause()
+        assert ta.text_input
         assert ta.text_input.completer_active == "word"
         assert ta.completion_list.is_open is True
         assert ta.completion_list.option_count == 10
@@ -129,6 +130,7 @@ async def test_autocomplete_paths(app: App, data_dir: Path) -> None:
                 print("\n".join([str(m) for m in messages]))
                 break
             await pilot.pause()
+        assert ta.text_input
         assert ta.text_input.completer_active == "path"
         assert ta.completion_list.is_open is True
         assert ta.completion_list.option_count == 2
@@ -178,5 +180,6 @@ async def test_autocomplete_members(
             await pilot.pause()
 
         member_completer.assert_called_with(expected_prefix)
+        assert ta.text_input is not None
         assert ta.text_input.completer_active == "member"
         assert ta.completion_list.is_open is True

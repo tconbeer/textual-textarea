@@ -14,6 +14,16 @@ class TextAreaClipboardError(Message, bubble=True):
         self.action = action
 
 
+class TextAreaThemeError(Message, bubble=True):
+    """
+    Posted when textarea cannot instantiate a theme
+    """
+
+    def __init__(self, theme: str) -> None:
+        super().__init__()
+        self.theme = theme
+
+
 class TextAreaSaved(Message, bubble=True):
     """
     Posted when the textarea saved a file successfully.

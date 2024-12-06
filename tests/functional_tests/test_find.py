@@ -34,6 +34,7 @@ async def test_find(app: App) -> None:
         assert ta.selection.end == (1, 6)
 
         await pilot.press("escape")
+        assert ta.text_input
         assert ta.text_input.has_focus
         assert ta.selection.start == (1, 4)
         assert ta.selection.end == (1, 6)
