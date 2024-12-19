@@ -883,7 +883,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             theme (str): Must be name of a Textual Theme.
         """
         super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled,
+            *children,
+            name=name,
+            id=id,
+            classes=classes,
+            disabled=disabled,
         )
         self._language = language
         self._theme = theme
@@ -891,7 +895,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._find_history: list[str] = []
         self.use_system_clipboard = use_system_clipboard
         self.text_input: TextAreaPlus | None = None
-        self.read_only=read_only
+        self.read_only = read_only
         self.path_completer = path_completer
         self.member_completer = member_completer
         self.word_completer = word_completer
@@ -1124,7 +1128,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         self.text_container = TextContainer()
-        self.text_input = TextAreaPlus(language=self._language, text=self._initial_text, read_only=self.read_only)
+        self.text_input = TextAreaPlus(
+            language=self._language, text=self._initial_text, read_only=self.read_only
+        )
         self.completion_list = CompletionList()
         self.footer = FooterContainer(classes="hide")
         self.footer_label = Label("", id="textarea__save_open_input_label")

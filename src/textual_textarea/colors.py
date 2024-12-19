@@ -12,19 +12,27 @@ def text_area_theme_from_app_theme(
     builtin = TextAreaTheme.get_builtin_theme(theme_name)
     if builtin is not None:
         return builtin
-    
+
     if "background" in css_vars:
-        background_color = Color.parse(css_vars.get("background", "#000000" if theme.dark else "#FFFFFF"))
-        foreground_color = Color.parse(css_vars.get("foreground", background_color.inverse))
+        background_color = Color.parse(
+            css_vars.get("background", "#000000" if theme.dark else "#FFFFFF")
+        )
+        foreground_color = Color.parse(
+            css_vars.get("foreground", background_color.inverse)
+        )
     else:
-        foreground_color = Color.parse(css_vars.get("foreground", "#FFFFFF" if theme.dark else "#000000"))
+        foreground_color = Color.parse(
+            css_vars.get("foreground", "#FFFFFF" if theme.dark else "#000000")
+        )
         background_color = foreground_color.inverse
 
     muted = background_color.blend(foreground_color, factor=0.5)
 
     computed_theme = TextAreaTheme(
         name=theme_name,
-        base_style=Style(color=foreground_color.rich_color, bgcolor=background_color.rich_color),
+        base_style=Style(
+            color=foreground_color.rich_color, bgcolor=background_color.rich_color
+        ),
         syntax_styles={
             "comment": muted.hex,  # type: ignore
             "string": theme.accent,  # type: ignore

@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Callable
 
 from rich.console import RenderableType
-from rich.text import Text
 from rich.style import Style
+from rich.text import Text
 from textual import on, work
 from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
@@ -129,7 +129,9 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     def populate_and_position_list(self, event: CompletionsReady) -> None:
         event.stop()
         self.clear_options()
-        type_label_style_full = self.get_component_rich_style("completion-list--type-label")
+        type_label_style_full = self.get_component_rich_style(
+            "completion-list--type-label"
+        )
         type_label_fg_style = Style(color=type_label_style_full.color)
         prompts = [
             Text.assemble(item[0][0], " ", (item[0][1], type_label_fg_style))
