@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.15.0] - 2024-12-19
+
 - **Breaking:** changes function return signature `query_syntax_tree`.
 - **Breaking:** drops support for Python 3.8.
 - **Breaking:** drops support for Pygments themes.
@@ -276,7 +278,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.14.4...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.15.0...HEAD
+[0.15.0]: https://github.com/tconbeer/textual-textarea/compare/0.14.4...0.15.0
 [0.14.4]: https://github.com/tconbeer/textual-textarea/compare/0.14.3...0.14.4
 [0.14.3]: https://github.com/tconbeer/textual-textarea/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/tconbeer/textual-textarea/compare/0.14.1...0.14.2
