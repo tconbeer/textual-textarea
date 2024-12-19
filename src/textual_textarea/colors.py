@@ -12,14 +12,19 @@ def text_area_theme_from_app_theme(
     builtin = TextAreaTheme.get_builtin_theme(theme_name)
     if builtin is not None:
         return builtin
+    
+    if "background" in css_vars:
+        background_color = Color.parse(css_vars.get("background", "#000000" if theme.dark else "#FFFFFF"))
+        foreground_color = Color.parse(css_vars.get("foreground", background_color.inverse))
+    else:
+        foreground_color = Color.parse(css_vars.get("foreground", "#FFFFFF" if theme.dark else "#000000"))
+        background_color = foreground_color.inverse
 
-    background_color = Color.parse(css_vars.get("background", "#000000"))
-    foreground_color = Color.parse(css_vars.get("foreground", "#FFFFFF"))
     muted = background_color.blend(foreground_color, factor=0.5)
 
     computed_theme = TextAreaTheme(
         name=theme_name,
-        base_style=Style(color=theme.foreground, bgcolor=theme.background),
+        base_style=Style(color=foreground_color.rich_color, bgcolor=background_color.rich_color),
         syntax_styles={
             "comment": muted.hex,  # type: ignore
             "string": theme.accent,  # type: ignore
@@ -31,20 +36,20 @@ def text_area_theme_from_app_theme(
             "function.call": theme.secondary,  # type: ignore
             "method": theme.secondary,  # type: ignore
             "method.call": theme.secondary,  # type: ignore
-            "constant": theme.foreground,  # type: ignore
-            "constant.builtin": theme.foreground,  # type: ignore
+            "constant": foreground_color.hex,  # type: ignore
+            "constant.builtin": foreground_color.hex,  # type: ignore
             "boolean": theme.accent,  # type: ignore
-            "class": f"{theme.foreground} bold",  # type: ignore
-            "type": f"{theme.foreground} bold",  # type: ignore
-            "variable": theme.foreground,  # type: ignore
+            "class": f"{foreground_color.hex} bold",  # type: ignore
+            "type": f"{foreground_color.hex} bold",  # type: ignore
+            "variable": foreground_color.hex,  # type: ignore
             "parameter": f"{theme.accent} bold",  # type: ignore
             "operator": theme.secondary,  # type: ignore
-            "punctuation.bracket": theme.foreground,  # type: ignore
-            "punctuation.delimeter": theme.foreground,  # type: ignore
+            "punctuation.bracket": foreground_color.hex,  # type: ignore
+            "punctuation.delimeter": foreground_color.hex,  # type: ignore
             "keyword": f"{theme.primary} bold",  # type: ignore
             "keyword.function": theme.secondary,  # type: ignore
             "keyword.return": theme.primary,  # type: ignore
-            "keyword.operator": theme.secondary,  # type: ignore
+            "keyword.operator": f"{theme.primary} bold",  # type: ignore
             "exception": theme.error,  # type: ignore
             "heading": theme.primary,  # type: ignore
             "bold": "bold",  # type: ignore

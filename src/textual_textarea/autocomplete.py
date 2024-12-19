@@ -4,6 +4,7 @@ from typing import Callable
 
 from rich.console import RenderableType
 from rich.text import Text
+from rich.style import Style
 from textual import on, work
 from textual.css.scalar import Scalar, ScalarOffset, Unit
 from textual.events import Key, Resize
@@ -31,6 +32,10 @@ class Completion(Option):
 
 
 class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
+    COMPONENT_CLASSES = {
+        "completion-list--type-label",
+        "completion-list--type-label-highlighted",
+    }
     DEFAULT_CSS = """
     CompletionList {
         layer: overlay;
@@ -43,10 +48,18 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     CompletionList.open {
         display: block;
     }
+    CompletionList .completion-list--type-label {
+        color: $foreground-muted;
+        background: transparent;
+    }
     """
 
     class CompletionsReady(Message, bubble=False):
-        def __init__(self, prefix: str, items: list[tuple[str, str]]) -> None:
+        def __init__(
+            self,
+            prefix: str,
+            items: list[tuple[str, str]] | list[tuple[tuple[str, str], str]],
+        ) -> None:
             super().__init__()
             self.items = items
             self.prefix = prefix
@@ -116,10 +129,17 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     def populate_and_position_list(self, event: CompletionsReady) -> None:
         event.stop()
         self.clear_options()
+        type_label_style_full = self.get_component_rich_style("completion-list--type-label")
+        type_label_fg_style = Style(color=type_label_style_full.color)
+        prompts = [
+            Text.assemble(item[0][0], " ", (item[0][1], type_label_fg_style))
+            if isinstance(item[0], tuple)
+            else Text.from_markup(item[0])
+            for item in event.items
+        ]
 
         # if the completions' prompts are wider than the widget,
         # we have to trunctate them
-        prompts = [Text.from_markup(item[0]) for item in event.items]
         max_length = max(map(lambda x: x.cell_len, prompts))
         truncate_amount = max(
             0,
@@ -136,7 +156,10 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
             ]
         else:
             additional_x_offset = 0
-            items = [Completion(prompt=item[0], value=item[1]) for item in event.items]
+            items = [
+                Completion(prompt=prompt, value=item[1])
+                for prompt, item in zip(prompts, event.items)
+            ]
 
         # set x offset if not already open.
         if not self.is_open:
@@ -201,7 +224,10 @@ class CompletionList(OptionList, can_focus=False, inherit_bindings=False):
     def show_completions(
         self,
         prefix: str,
-        completer: Callable[[str], list[tuple[str, str]]] | None,
+        completer: Callable[
+            [str], list[tuple[str, str]] | list[tuple[tuple[str, str], str]]
+        ]
+        | None,
     ) -> None:
         matches = completer(prefix) if completer is not None else []
         if matches:

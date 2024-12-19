@@ -188,6 +188,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         language: str | None = None,
         theme: str = "css",
         use_system_clipboard: bool = True,
+        read_only: bool = False,
         name: str | None = None,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
@@ -204,6 +205,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             soft_wrap=False,
             tab_behavior="indent",
             show_line_numbers=True,
+            read_only=read_only,
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
@@ -549,6 +551,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
             return
+        if self.read_only:
+            return
         nl = self.document.newline
         first, last = sorted([*self.selection])
         indent = self._get_indent_level_of_line(index=first[0])
@@ -574,6 +578,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_quote_or_bracket(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
+        if self.read_only:
+            return
         if self.completer_active != "member":
             self.post_message(TextAreaHideCompletionList())
         else:
@@ -594,6 +600,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_shift_tab(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
+        if self.read_only:
+            self.app.action_focus_previous()
+            return
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
             return
@@ -628,6 +637,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         event.prevent_default()
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
+            return
+        if self.read_only:
+            self.app.action_focus_next()
             return
         first, last = sorted([*self.selection])
         # in some cases, selections are replaced with indent
@@ -831,18 +843,34 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
+        read_only: bool = False,
         language: str | None = None,
-        theme: str = "monokai",
+        theme: str = "css",
         text: str = "",
         use_system_clipboard: bool = True,
         path_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = path_completer,
         member_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = None,
         word_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = None,
     ) -> None:
         """
@@ -850,13 +878,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
         Args:
             (see also textual.widget.Widget)
-            language (str): Must be the short name of a Pygments lexer
-                (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
-            theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
-                e.g., "bw", "github-dark", "solarized-light".
+            language (str): Must be the short name of a tree-sitter language,
+                e.g., "python", "sql"
+            theme (str): Must be name of a Textual Theme.
         """
         super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
+            *children, name=name, id=id, classes=classes, disabled=disabled,
         )
         self._language = language
         self._theme = theme
@@ -864,6 +891,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._find_history: list[str] = []
         self.use_system_clipboard = use_system_clipboard
         self.text_input: TextAreaPlus | None = None
+        self.read_only=read_only
         self.path_completer = path_completer
         self.member_completer = member_completer
         self.word_completer = word_completer
@@ -1096,7 +1124,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         self.text_container = TextContainer()
-        self.text_input = TextAreaPlus(language=self._language, text=self._initial_text)
+        self.text_input = TextAreaPlus(language=self._language, text=self._initial_text, read_only=self.read_only)
         self.completion_list = CompletionList()
         self.footer = FooterContainer(classes="hide")
         self.footer_label = Label("", id="textarea__save_open_input_label")

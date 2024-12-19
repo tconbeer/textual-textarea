@@ -33,6 +33,26 @@ def word_completer() -> Callable[[str], list[tuple[str, str]]]:
 
 
 @pytest.fixture
+def word_completer_with_types() -> Callable[[str], list[tuple[tuple[str, str], str]]]:
+    def _completer(prefix: str) -> list[tuple[tuple[str, str], str]]:
+        words = [
+            "satisfy",
+            "season",
+            "second",
+            "seldom",
+            "select",
+            "self",
+            "separate",
+            "set",
+            "space",
+            "super",
+        ]
+        return [((w, "word"), w) for w in words if w.startswith(prefix)]
+
+    return _completer
+
+
+@pytest.fixture
 def member_completer() -> Callable[[str], list[tuple[str, str]]]:
     mock = MagicMock()
     mock.return_value = [("completion", "completion")]
@@ -44,6 +64,80 @@ async def test_autocomplete(
     app: App, word_completer: Callable[[str], list[tuple[str, str]]]
 ) -> None:
     messages: list[Message] = []
+    async with app.run_test(message_hook=messages.append) as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = word_completer
+        ta.focus()
+        while ta.word_completer is None:
+            await pilot.pause()
+
+        start_time = monotonic()
+        await pilot.press("s")
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                print("MESSAGES:")
+                print("\n".join([str(m) for m in messages]))
+                break
+            await pilot.pause()
+        assert ta.text_input
+        assert ta.text_input.completer_active == "word"
+        assert ta.completion_list.is_open is True
+        assert ta.completion_list.option_count == 10
+        first_offset = ta.completion_list.styles.offset
+
+        await pilot.press("e")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active == "word"
+        assert ta.completion_list.is_open is True
+        assert ta.completion_list.option_count == 7
+        assert ta.completion_list.styles.offset == first_offset
+
+        await pilot.press("z")  # sez, no matches
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active is None
+        assert ta.completion_list.is_open is False
+
+        # backspace when the list is not open doesn't re-open it
+        await pilot.press("backspace")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active is None
+        assert ta.completion_list.is_open is False
+
+        await pilot.press("l")  # sel
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active == "word"
+        assert ta.completion_list.is_open is True
+        assert ta.completion_list.option_count == 3
+        assert ta.completion_list.styles.offset == first_offset
+
+        await pilot.press("backspace")  # se
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active == "word"
+        assert ta.completion_list.is_open is True
+        assert ta.completion_list.option_count == 7
+        assert ta.completion_list.styles.offset == first_offset
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.text_input.completer_active is None
+        assert ta.completion_list.is_open is False
+        assert ta.text == "season"
+        assert ta.selection.end[1] == 6
+
+
+@pytest.mark.asyncio
+async def test_autocomplete_with_types(
+    app: App,
+    word_completer_with_types: Callable[[str], list[tuple[tuple[str, str], str]]],
+) -> None:
+    messages: list[Message] = []
+    word_completer = word_completer_with_types
     async with app.run_test(message_hook=messages.append) as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
         ta.word_completer = word_completer

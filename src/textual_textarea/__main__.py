@@ -44,7 +44,7 @@ class TextApp(App, inherit_bindings=False):
         self.theme = "gruvbox"
         self.editor.focus()
 
-        def _completer(prefix: str) -> list[tuple[str, str]]:
+        def _completer(prefix: str) -> list[tuple[tuple[str, str], str]]:
             words = [
                 "satisfy",
                 "season",
@@ -58,7 +58,7 @@ class TextApp(App, inherit_bindings=False):
                 "super",
                 "supercalifragilisticexpialadocioussupercalifragilisticexpialadocious",
             ]
-            return [(w, w) for w in words if w.startswith(prefix)]
+            return [((w, "word"), w) for w in words if w.startswith(prefix)]
 
         self.editor.word_completer = _completer
 
