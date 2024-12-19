@@ -14,20 +14,19 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-textual = { version = ">=0.72", extras = ["syntax"] }
+python = ">=3.9,<3.14"
+textual = { version = ">=0.89.1,<2.0", extras = ["syntax"] }
 pyperclip = "^1.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.1"
-textual = "0.73.0"
+textual = "0.89.1"
 textual-dev = "^1.2.1"
-pyinstrument = "^4.6.2"
+pyinstrument = "^5"
 
 [tool.poetry.group.static.dependencies]
 ruff = "^0.5"
 mypy = "^1.10.0"
-types-pygments = "^2.16.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=7.3.1,<9.0.0"
@@ -37,7 +36,7 @@ pytest-asyncio = "^0.21"
 select = ["A", "B", "E", "F", "I"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 files = [
     "src/textual_textarea/**/*.py",
     "tests/**/*.py",

@@ -8,13 +8,19 @@ from textual_textarea.cancellable_input import CancellableInput
 
 
 class FindInput(CancellableInput):
-    def __init__(self, value: str = "", history: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        value: str = "",
+        history: list[str] | None = None,
+        classes: str | None = None,
+    ) -> None:
         super().__init__(
             value=value,
             placeholder="Find; enter for next; ESC to close; ↑↓ for history",
             password=False,
             type="text",
             id="textarea__find_input",
+            classes=classes,
         )
         self.history: list[str] = [] if history is None else history
         self.history_index: int | None = None

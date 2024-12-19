@@ -33,6 +33,7 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         await pilot.press("enter")
 
         assert ta.text == contents
+        assert ta.text_input is not None
         assert ta.text_input.has_focus
 
         # make sure the end of the buffer is formatted properly.

@@ -286,7 +286,10 @@ async def test_copy_paste(
 
     async with app_all_clipboards.run_test() as pilot:
         ta = app_all_clipboards.query_one("#ta", expect_type=TextEditor)
+        while ta.text_input is None:
+            await pilot.pause(0.1)
         ti = ta.text_input
+        assert ti is not None
         ta.text = original_text
         ta.selection = starting_selection
 

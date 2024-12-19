@@ -15,7 +15,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
 from textual.message import Message
-from textual.reactive import Reactive, reactive
+from textual.reactive import reactive
 from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Input, Label, OptionList, TextArea
@@ -23,7 +23,7 @@ from textual.widgets.text_area import Location, Selection, SyntaxAwareDocument
 
 from textual_textarea.autocomplete import CompletionList
 from textual_textarea.cancellable_input import CancellableInput
-from textual_textarea.colors import WidgetColors, text_area_theme_from_pygments_name
+from textual_textarea.colors import text_area_theme_from_app_theme
 from textual_textarea.comments import INLINE_MARKERS
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
@@ -33,6 +33,7 @@ from textual_textarea.messages import (
     TextAreaClipboardError,
     TextAreaHideCompletionList,
     TextAreaSaved,
+    TextAreaThemeError,
 )
 from textual_textarea.path_input import PathInput, path_completer
 
@@ -187,6 +188,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         language: str | None = None,
         theme: str = "css",
         use_system_clipboard: bool = True,
+        read_only: bool = False,
         name: str | None = None,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
@@ -203,6 +205,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             soft_wrap=False,
             tab_behavior="indent",
             show_line_numbers=True,
+            read_only=read_only,
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
@@ -548,6 +551,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
             return
+        if self.read_only:
+            return
         nl = self.document.newline
         first, last = sorted([*self.selection])
         indent = self._get_indent_level_of_line(index=first[0])
@@ -573,6 +578,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_quote_or_bracket(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
+        if self.read_only:
+            return
         if self.completer_active != "member":
             self.post_message(TextAreaHideCompletionList())
         else:
@@ -593,6 +600,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_shift_tab(self, event: events.Key) -> None:
         event.stop()
         event.prevent_default()
+        if self.read_only:
+            self.app.action_focus_previous()
+            return
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
             return
@@ -627,6 +637,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         event.prevent_default()
         if self.completer_active is not None:
             self.post_message(self.CompletionListKey(event))
+            return
+        if self.read_only:
+            self.app.action_focus_next()
             return
         first, last = sorted([*self.selection])
         # in some cases, selections are replaced with indent
@@ -789,7 +802,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
         theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
             e.g., "bw", "github-dark", "solarized-light".
-        theme_colors (WidgetColors): The colors extracted from the theme.
     """
 
     DEFAULT_CSS = """
@@ -799,6 +811,17 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     .validation-error {
         color: $error;
         text-style: italic;
+    }
+    Input.textarea--footer-input {
+        border: round $foreground;
+        color: $foreground;
+        background: $background;
+        &.-invalid {
+            border: round $error 60%;
+        }
+        &.-invalid:focus {
+            border: round $error;
+        }  
     }
     """
 
@@ -811,7 +834,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
-    theme: Reactive[str] = reactive("monokai")
+    theme: reactive[str] = reactive("monokai")
 
     def __init__(
         self,
@@ -820,18 +843,34 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
         disabled: bool = False,
+        read_only: bool = False,
         language: str | None = None,
-        theme: str = "monokai",
+        theme: str = "css",
         text: str = "",
         use_system_clipboard: bool = True,
         path_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = path_completer,
         member_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = None,
         word_completer: (
-            Callable[[str], Sequence[tuple[RenderableType, str]]] | None
+            Callable[
+                [str],
+                Sequence[tuple[RenderableType, str]]
+                | Sequence[tuple[tuple[str, str], str]],
+            ]
+            | None
         ) = None,
     ) -> None:
         """
@@ -839,20 +878,24 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
         Args:
             (see also textual.widget.Widget)
-            language (str): Must be the short name of a Pygments lexer
-                (https://pygments.org/docs/lexers/), e.g., "python", "sql", "as3".
-            theme (str): Must be name of a Pygments style (https://pygments.org/styles/),
-                e.g., "bw", "github-dark", "solarized-light".
+            language (str): Must be the short name of a tree-sitter language,
+                e.g., "python", "sql"
+            theme (str): Must be name of a Textual Theme.
         """
         super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
+            *children,
+            name=name,
+            id=id,
+            classes=classes,
+            disabled=disabled,
         )
         self._language = language
         self._theme = theme
         self._initial_text = text
         self._find_history: list[str] = []
-        self.theme_colors = WidgetColors.from_theme(theme)
         self.use_system_clipboard = use_system_clipboard
+        self.text_input: TextAreaPlus | None = None
+        self.read_only = read_only
         self.path_completer = path_completer
         self.member_completer = member_completer
         self.word_completer = word_completer
@@ -863,6 +906,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Returns:
             (str) The contents of the TextEditor.
         """
+        if self.text_input is None:
+            return ""
         return self.text_input.text
 
     @text.setter
@@ -872,6 +917,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             contents (str): A string (optionally containing newlines) to
                 set the contents of the TextEditor equal to.
         """
+        if self.text_input is None:
+            return
         self.text_input.history.checkpoint()
         self.text_input.replace(
             contents,
@@ -889,6 +936,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             anchor and the cursor. Returns an empty string if the
             selection anchor is not set.
         """
+        if self.text_input is None:
+            return ""
         return self.text_input.selected_text
 
     @property
@@ -897,6 +946,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Returns
             Selection: The location of the cursor in the TextEditor
         """
+        if self.text_input is None:
+            return Selection((0, 0), (0, 0))
         return self.text_input.selection
 
     @selection.setter
@@ -906,14 +957,18 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             selection (Selection): The position (line number, pos)
             to move the cursor and selection anchor to
         """
+        if self.text_input is None:
+            return
         self.text_input.selection = selection
 
     @property
     def language(self) -> str | None:
         """
         Returns
-            str | None: The Pygments short name of the active language
+            str | None: The tree-sitter short name of the active language
         """
+        if self.text_input is None:
+            return None
         return self.text_input.language
 
     @language.setter
@@ -922,6 +977,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Args:
             langage (str | None): The Pygments short name for the new language
         """
+        if self.text_input is None:
+            return None
         self.text_input.language = language
 
     @property
@@ -929,6 +986,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         Returns the number of lines in the document.
         """
+        if self.text_input is None:
+            return 0
         return self.text_input.document.line_count
 
     def get_line(self, index: int) -> str:
@@ -941,6 +1000,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Returns:
             The str instance representing the line.
         """
+        if self.text_input is None:
+            return ""
         return self.text_input.document.get_line(index=index)
 
     def get_text_range(self, selection: Selection) -> str:
@@ -953,6 +1014,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Returns:
             The text between start and end.
         """
+        if self.text_input is None:
+            return ""
         return self.text_input.get_text_range(*selection)
 
     def insert_text_at_selection(self, text: str) -> None:
@@ -963,6 +1026,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Args:
             text (str): The text to be inserted.
         """
+        if self.text_input is None:
+            return
         self.text_input.replace(
             text,
             *self.text_input.selection,
@@ -977,6 +1042,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Args:
             text (str): The text to place on the clipboard.
         """
+        if self.text_input is None:
+            self.post_message(TextAreaClipboardError(action="copy"))
+            return
         self.text_input.clipboard = text
         if self.use_system_clipboard and self.text_input.system_copy is not None:
             try:
@@ -988,12 +1056,16 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         Pauses the blink of the cursor
         """
+        if self.text_input is None:
+            return
         self.text_input._pause_blink(visible=visible)
 
     def restart_blink(self) -> None:
         """
         Restarts the blink of the cursor
         """
+        if self.text_input is None:
+            return
         self.text_input._restart_blink()
 
     def prepare_query(self, source: str) -> "Query" | None:
@@ -1004,6 +1076,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             source (str): A tree-sitter query. See
             https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax
         """
+        if self.text_input is None:
+            return None
         return self.text_input.document.prepare_query(query=source)
 
     def query_syntax_tree(
@@ -1011,7 +1085,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         query: "Query",
         start_point: tuple[int, int] | None = None,
         end_point: tuple[int, int] | None = None,
-    ) -> list[tuple["Node", str]]:
+    ) -> dict[str, list["Node"]]:
         """
         Query the tree-sitter syntax tree.
 
@@ -1023,8 +1097,10 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
                 query at.
 
         Returns:
-            A tuple containing the nodes and text captured by the query.
+            A dict mapping captured node names to lists of Nodes with that name
         """
+        if self.text_input is None:
+            return {}
         return self.text_input.document.query_syntax_tree(
             query=query, start_point=start_point, end_point=end_point
         )
@@ -1034,6 +1110,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         """
         Returns the document's syntax tree.
         """
+        if self.text_input is None:
+            return None
         if isinstance(self.text_input.document, SyntaxAwareDocument):
             return self.text_input.document._syntax_tree
         else:
@@ -1041,6 +1119,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     @property
     def parser(self) -> "Parser" | None:
+        if self.text_input is None:
+            return None
         if isinstance(self.text_input.document, SyntaxAwareDocument):
             return self.text_input.document._parser
         else:
@@ -1048,7 +1128,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     def compose(self) -> ComposeResult:
         self.text_container = TextContainer()
-        self.text_input = TextAreaPlus(language=self._language, text=self._initial_text)
+        self.text_input = TextAreaPlus(
+            language=self._language, text=self._initial_text, read_only=self.read_only
+        )
         self.completion_list = CompletionList()
         self.footer = FooterContainer(classes="hide")
         self.footer_label = Label("", id="textarea__save_open_input_label")
@@ -1059,18 +1141,22 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             yield self.footer_label
 
     def on_mount(self) -> None:
-        self.styles.background = self.theme_colors.bgcolor
+        # delay setting the reactive until the widget mounts so we can be sure that
+        # self.text_input exists so watch_theme can do its thing.
         self.theme = self._theme
 
     def on_focus(self) -> None:
-        self.text_input.focus()
+        if self.text_input is not None:
+            self.text_input.focus()
 
     def on_click(self) -> None:
-        self.text_input.focus()
+        if self.text_input is not None:
+            self.text_input.focus()
 
     @on(TextAreaHideCompletionList)
     def hide_completion_list(self, event: TextAreaHideCompletionList) -> None:
         event.stop()
+        assert self.text_input is not None
         self.completion_list.is_open = False
         self.text_input.completer_active = None
 
@@ -1078,6 +1164,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     def update_completion_list_offset(
         self, event: TextAreaPlus.SelectionChanged
     ) -> None:
+        event.stop()
+        assert self.text_input is not None
         region_x, region_y, _, _ = self.text_input.region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
@@ -1085,7 +1173,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         )
 
     @on(TextAreaPlus.Changed)
-    def check_for_find_updates(self) -> None:
+    def check_for_find_updates(self, event: TextAreaPlus.Changed) -> None:
+        event.stop()
         try:
             find_input = self.footer.query_one(FindInput)
         except Exception:
@@ -1097,6 +1186,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self, event: TextAreaPlus.ShowCompletionList
     ) -> None:
         event.stop()
+        assert self.text_input is not None
         region_x, region_y, _, _ = self.text_input.region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
             region_x,
@@ -1119,6 +1209,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     @on(OptionList.OptionSelected)
     def insert_completion(self, event: OptionList.OptionSelected) -> None:
         event.stop()
+        assert self.text_input is not None
         value = getattr(event.option, "value", None) or str(event.option.prompt)
         self.text_input.replace_current_word(value)
         self.completion_list.is_open = False
@@ -1127,7 +1218,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     @on(CancellableInput.Cancelled)
     def clear_footer(self) -> None:
         self._clear_footer_input()
-        self.text_input.focus()
+        if self.text_input is not None:
+            self.text_input.focus()
 
     @on(Input.Changed)
     def update_validation_label(self, message: Input.Changed) -> None:
@@ -1183,7 +1275,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             self.post_message(TextAreaSaved(path=expanded_path))
         self._clear_footer_input()
-        self.text_input.focus()
+        if self.text_input is not None:
+            self.text_input.focus()
 
     @on(Input.Submitted, "#textarea__open_input")
     def open_file(self, message: Input.Submitted) -> None:
@@ -1203,11 +1296,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             self.text = contents
         self._clear_footer_input()
-        self.text_input.focus()
+        if self.text_input is not None:
+            self.text_input.focus()
 
     @on(Input.Submitted, "#textarea__gotoline_input")
     def goto_line(self, message: Input.Submitted) -> None:
         message.stop()
+        assert self.text_input is not None
         try:
             new_line = int(message.value) - 1
         except (ValueError, TypeError):
@@ -1224,17 +1319,27 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._find_next_after_cursor(value=message.value)
 
     def watch_theme(self, theme: str) -> None:
-        try:
-            ti = self.text_input
-        except AttributeError:
+        if self.text_input is None:
+            self.app.notify(
+                message=(
+                    "Could not load the selected theme in the TextArea, because "
+                    "it has not yet loaded. Please try again."
+                ),
+                severity="warning",
+            )
             return
-        if theme in ti.available_themes:
-            ti.theme = theme
+
+        if theme in self.text_input.available_themes:
+            self.text_input.theme = theme
         else:
-            textarea_theme = text_area_theme_from_pygments_name(theme)
-            ti.register_theme(textarea_theme)
-            ti.theme = textarea_theme.name
-        self.theme_colors = WidgetColors.from_theme(theme)
+            css_vars = self.app.get_css_variables()
+            theme_obj = self.app.get_theme(theme_name=theme)
+            if theme_obj is None:
+                self.post_message(TextAreaThemeError(theme=theme))
+                return
+            textarea_theme = text_area_theme_from_app_theme(theme, theme_obj, css_vars)
+            self.text_input.register_theme(textarea_theme)
+            self.text_input.theme = theme
 
     def action_save(self) -> None:
         self._clear_footer_input()
@@ -1257,7 +1362,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             value = self._find_history[-1]
         else:
             value = ""
-        find_input = FindInput(value=value, history=self._find_history)
+        find_input = FindInput(
+            value=value,
+            history=self._find_history,
+            classes="textarea--footer-input",
+        )
         self._mount_footer_input(input_widget=find_input)
 
     def action_goto_line(self) -> None:
@@ -1270,10 +1379,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             return
         self._clear_footer_input()
         goto_input = GotoLineInput(
-            max_line_number=self.text_input.document.line_count,
+            max_line_number=self.text_input.document.line_count
+            if self.text_input is not None
+            else 10000,
             current_line=self.selection.end[0] + 1,
             min_line_number=1,
             id="textarea__gotoline_input",
+            classes="textarea--footer-input",
         )
         self._mount_footer_input(input_widget=goto_input)
 
@@ -1289,9 +1401,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.footer.add_class("hide")
 
     def _mount_footer_input(self, input_widget: Input) -> None:
-        input_widget.styles.background = self.theme_colors.bgcolor
-        input_widget.styles.border = "round", self.theme_colors.contrast_text_color
-        input_widget.styles.color = self.theme_colors.contrast_text_color
         self.footer.remove_class("hide")
         try:
             self.footer.mount(input_widget)
@@ -1312,10 +1421,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             file_okay=file_okay,
             dir_okay=dir_okay,
             must_exist=must_exist,
+            classes="textarea--footer-input",
         )
         self._mount_footer_input(input_widget=path_input)
 
     def _find_next_after_cursor(self, value: str) -> None:
+        assert self.text_input is not None
         label = self.footer_label
         if not value:
             label.update("")
