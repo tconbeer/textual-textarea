@@ -5,6 +5,7 @@ import pytest
 from textual.app import App
 from textual.message import Message
 from textual.widgets import Input
+
 from textual_textarea import TextAreaSaved, TextEditor
 
 

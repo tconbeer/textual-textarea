@@ -44,7 +44,7 @@ class GotoLineInput(CancellableInput):
             f"Current line: {current_line}. " if current_line is not None else ""
         )
         range_text = (
-            f"Enter a line number between {min_line_number} and " f"{max_line_number}."
+            f"Enter a line number between {min_line_number} and {max_line_number}."
         )
         placeholder = f"{current_line_text}{range_text} ESC to cancel."
         super().__init__(

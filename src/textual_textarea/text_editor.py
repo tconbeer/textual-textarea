@@ -565,7 +565,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             else:
                 new_indent = indent + self.indent_width - (indent % self.indent_width)
                 indent_char = " "
-            self.replace(f"{nl}{indent_char*new_indent}", first, last)
+            self.replace(f"{nl}{indent_char * new_indent}", first, last)
             char_at = self._get_character_at_cursor()
             if char_at == BRACKETS[char_before]:
                 loc = self.selection
@@ -651,7 +651,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             indent_char = "\t" if self.indent_type == "tabs" else " "
             indent_width = 1 if self.indent_type == "tabs" else self.indent_width
             self.replace(
-                f"{indent_char*(indent_width - first[1] % indent_width)}",
+                f"{indent_char * (indent_width - first[1] % indent_width)}",
                 first,
                 last,
                 maintain_selection_offset=False,
@@ -695,7 +695,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         tab_stops = [rounder(space / indent_width) for space in raw_indents]
 
         new_lines = [
-            f"{indent_char * max(0, indent+offset)}{line.lstrip()}"
+            f"{indent_char * max(0, indent + offset)}{line.lstrip()}"
             for line, indent in zip(lines, tab_stops)
         ]
         self.replace(
