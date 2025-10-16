@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from textual_textarea.path_input import PathValidator, path_completer
 
 

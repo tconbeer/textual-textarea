@@ -1,5 +1,6 @@
 import pytest
 from textual.app import App
+
 from textual_textarea import TextEditor
 from textual_textarea.find_input import FindInput
 

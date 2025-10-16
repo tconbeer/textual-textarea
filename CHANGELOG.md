@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Development
+
+- This project is now built using uv.
+
 ## [0.15.0] - 2024-12-19
 
 - **Breaking:** changes function return signature `query_syntax_tree`.

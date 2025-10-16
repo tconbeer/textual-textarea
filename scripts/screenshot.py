@@ -3,6 +3,7 @@ from pathlib import Path
 
 from textual.app import App, ComposeResult
 from textual.widgets.text_area import Selection
+
 from textual_textarea import TextEditor
 
 contents = (Path(__file__).parent / "sample_code.py").open("r").read()

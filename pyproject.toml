@@ -1,47 +1,90 @@
-[tool.poetry]
+[project]
+
 name = "textual-textarea"
 version = "0.15.0"
+requires-python = ">=3.9,<3.14"
 description = "A text area (multi-line input) with syntax highlighting for Textual"
-authors = ["Ted Conbeer <tconbeer@users.noreply.github.com>"]
+authors = [
+    { name = "Ted Conbeer", email = "tconbeer@users.noreply.github.com" }
+]
 license = "MIT"
-homepage = "https://github.com/tconbeer/textual-textarea"
-repository = "https://github.com/tconbeer/textual-textarea"
 readme = "README.md"
-packages = [{ include = "textual_textarea", from = "src" }]
+dependencies = [
+    "textual[syntax]>=0.89.1,<2.0",
+    "pyperclip>=1.9.0,<2",
+
+    # some tree sitter languages are incompatible with the core
+    # library, so we pin them.
+    "tree-sitter==0.23.2",
+    "tree-sitter-python==0.23.5",
+    "tree-sitter-sql==0.3.7",
+]
+
+
+[dependency-groups]
+dev = [
+    "pre-commit>=3.3,<4",
+    "textual==0.89.1",
+    "textual-dev==1.2.1; python_version < '3.12'",
+    "importlib_metadata>=8,<9; python_version < '3.10'",
+    "pyinstrument>=5,<6",
+]
+static = [
+    "ruff>=0.6,<0.10",
+    "mypy>=1.11.0,<2",
+]
+test = [
+    "pytest>=7.3.1,<9.0.0",
+    "pytest-asyncio==0.21.0",
+]
+
+[project.urls]
+
+Homepage = "https://github.com/tconbeer/textual-textarea"
+Repository = "https://github.com/tconbeer/textual-textarea"
+
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.14"
-textual = { version = ">=0.89.1,<2.0", extras = ["syntax"] }
-pyperclip = "^1.9.0"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^3.3.1"
-textual = "0.89.1"
-textual-dev = "^1.2.1"
-pyinstrument = "^5"
 
-[tool.poetry.group.static.dependencies]
-ruff = "^0.5"
-mypy = "^1.10.0"
+[tool.hatch.build.targets.wheel]
 
-[tool.poetry.group.test.dependencies]
-pytest = ">=7.3.1,<9.0.0"
-pytest-asyncio = "^0.21"
+packages = [
+    "src/textual_textarea",
+]
+
+[tool.hatch.build.targets.sdist]
+
+only-include = [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "pyproject.toml"
+]
+
+
+[tool.ruff]
+
+target-version = "py39"
+
 
 [tool.ruff.lint]
+
 select = ["A", "B", "E", "F", "I"]
 
+
 [tool.mypy]
+
 python_version = "3.9"
 files = [
-    "src/textual_textarea/**/*.py",
+    "src/**/*.py",
     "tests/**/*.py",
 ]
-mypy_path = "src:stubs"
+mypy_path = "stubs,src"
 
 show_column_numbers = true
 

@@ -9,6 +9,7 @@ import pytest
 from textual.app import App
 from textual.message import Message
 from textual.widgets.text_area import Selection
+
 from textual_textarea import TextEditor
 
 

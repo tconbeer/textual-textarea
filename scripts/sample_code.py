@@ -1,21 +1,19 @@
 from textual.app import App, ComposeResult
+
 from textual_textarea import TextEditor
 
 
 class TextApp(App, inherit_bindings=False):
     def compose(self) -> ComposeResult:
-        self.ta = TextEditor(
-            text="class TextApp(App):",
+        self.editor = TextEditor(
             language="python",
             theme="monokai",
             use_system_clipboard=True,
-            id="ta",
         )
-        yield self.ta
+        yield self.editor
 
     def on_mount(self) -> None:
-        self.ta.focus()
-        self.exit()
+        self.editor.focus()
 
 
 if __name__ == "__main__":

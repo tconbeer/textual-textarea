@@ -5,6 +5,7 @@ import pytest
 from textual.app import App, ComposeResult
 from textual.driver import Driver
 from textual.types import CSSPathType
+
 from textual_textarea.text_editor import TextEditor
 
 

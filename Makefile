@@ -1,21 +1,25 @@
 .PHONY: check
 check:
-	ruff format .
-	ruff check . --fix
-	mypy
-	pytest
+	uv sync --group static --group test
+	uv run ruff format .
+	uv run ruff check . --fix
+	uv run mypy
+	uv run pytest
 
 .PHONY: lint
 lint:
-	ruff format .
-	ruff check . --fix
-	mypy
+	uv sync --group static --group test
+	uv run ruff format .
+	uv run ruff check . --fix
+	uv run mypy
 
 .PHONY: serve
 serve:
-	textual run --dev -c python -m textual_textarea
+	uv sync --group dev
+	uv run textual run --dev -c python -m textual_textarea
 
 profiles: .profiles/startup.html
 
 .profiles/startup.html: src/scripts/profile_startup.py pyproject.toml $(wildcard src/textual_textarea/**/*.py)
-	pyinstrument -r html -o .profiles/startup.html "src/scripts/profile_startup.py"
+	uv sync --group dev
+	uv run pyinstrument -r html -o .profiles/startup.html "src/scripts/profile_startup.py"
