@@ -31,7 +31,7 @@ from textual_textarea import TextEditor
             "select\n foo",
             Selection(start=(0, 0), end=(0, 6)),
             "select\n foo",
-            Selection(start=(1, 0), end=(1, 0)),
+            Selection(start=(0, 6), end=(0, 6)),
         ),
         (
             ["a"],
