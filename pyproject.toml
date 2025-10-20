@@ -2,7 +2,7 @@
 
 name = "textual-textarea"
 version = "0.15.0"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.15"
 description = "A text area (multi-line input) with syntax highlighting for Textual"
 authors = [
     { name = "Ted Conbeer", email = "tconbeer@users.noreply.github.com" }
@@ -10,13 +10,13 @@ authors = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-    "textual[syntax]>=0.89.1,<2.0",
+    "textual[syntax]>=6.3.0,<7",
     "pyperclip>=1.9.0,<2",
 
-    # some tree sitter languages are incompatible with the core
-    # library, so we pin them.
-    "tree-sitter==0.23.2",
-    "tree-sitter-python==0.23.5",
+    # some tree sitter language version are incompatible with some core
+    # library versions, so we pin them.
+    "tree-sitter==0.25.2",
+    "tree-sitter-python==0.25.0",
     "tree-sitter-sql==0.3.7",
 ]
 
@@ -24,14 +24,13 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit>=3.3,<4",
-    "textual==0.89.1",
-    "textual-dev==1.2.1; python_version < '3.12'",
-    "importlib_metadata>=8,<9; python_version < '3.10'",
+    "textual==6.3.0",
+    "textual-dev==1.8.0",
     "pyinstrument>=5,<6",
 ]
 static = [
-    "ruff>=0.6,<0.10",
-    "mypy>=1.11.0,<2",
+    "ruff==0.14.1",
+    "mypy==1.18.2",
 ]
 test = [
     "pytest>=7.3.1,<9.0.0",

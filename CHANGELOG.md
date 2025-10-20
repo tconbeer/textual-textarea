@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Breaking:** drops support for Python 3.9.
+- **Breaking:** drops support for Textual < 6.3.
+- Adds support for Python 3.14.
+
 ### Development
 
 - This project is now built using uv.
