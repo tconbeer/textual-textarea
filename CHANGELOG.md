@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.0] - 2025-10-22
+
 - **Breaking:** drops support for Textual &lt; 6.4, due to updated tree-sitter dependencies in that version.
 
 ## [0.16.0] - 2025-10-20
@@ -290,7 +292,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.16.0...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...HEAD
+[0.17.0]: https://github.com/tconbeer/textual-textarea/compare/0.16.0...0.17.0
 [0.16.0]: https://github.com/tconbeer/textual-textarea/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/tconbeer/textual-textarea/compare/0.14.4...0.15.0
 [0.14.4]: https://github.com/tconbeer/textual-textarea/compare/0.14.3...0.14.4
