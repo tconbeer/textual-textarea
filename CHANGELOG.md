@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Breaking:** drops support for Textual &lt; 6.4, due to updated tree-sitter dependencies in that version.
+
 ## [0.16.0] - 2025-10-20
 
 - **Breaking:** drops support for Python 3.9.

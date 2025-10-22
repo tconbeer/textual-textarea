@@ -10,21 +10,15 @@ authors = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-    "textual[syntax]>=6.3.0,<7",
+    "textual[syntax]>=6.4.0,<7",
     "pyperclip>=1.9.0,<2",
-
-    # some tree sitter language version are incompatible with some core
-    # library versions, so we pin them.
-    "tree-sitter==0.25.2",
-    "tree-sitter-python==0.25.0",
-    "tree-sitter-sql==0.3.7",
 ]
 
 
 [dependency-groups]
 dev = [
     "pre-commit>=3.3,<4",
-    "textual==6.3.0",
+    "textual==6.4.0",
     "textual-dev==1.8.0",
     "pyinstrument>=5,<6",
 ]
