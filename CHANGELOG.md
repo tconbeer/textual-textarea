@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.1] - 2025-10-23
+
 - Fixes a bug with the Open/Save/Find/Goto input's focus and appearance after attempting to open multiple inputs ([harlequin/#869](https://github.com/tconbeer/harlequin/issues/869)).
 
 ## [0.17.0] - 2025-10-22
@@ -294,7 +296,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...HEAD
+[0.17.1]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...0.17.1
 [0.17.0]: https://github.com/tconbeer/textual-textarea/compare/0.16.0...0.17.0
 [0.16.0]: https://github.com/tconbeer/textual-textarea/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/tconbeer/textual-textarea/compare/0.14.4...0.15.0
