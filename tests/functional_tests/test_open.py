@@ -69,3 +69,43 @@ async def test_save(app: App, tmp_path: Path) -> None:
         with open(p, "r") as f:
             saved_text = f.read()
         assert saved_text == TEXT
+
+
+@pytest.mark.asyncio
+async def test_multiple_footer_inputs(app: App) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_exactly_one("#ta", expect_type=TextEditor)
+        ta.text = "select 1"
+        assert ta.text_input is not None
+        ta.text_input.focus()
+        while not ta.text_input.has_focus:
+            await pilot.pause()
+
+        await pilot.press("ctrl+o")
+        open_input = ta.query_exactly_one(Input)
+        assert open_input.id and "open" in open_input.id
+        assert open_input.has_focus
+
+        await pilot.press("a")
+        assert open_input.value == "a"
+
+        await pilot.press("ctrl+o")
+        new_input = ta.query_exactly_one(Input)
+        assert open_input is new_input
+        assert open_input.has_focus
+        assert open_input.value == "a"
+
+        await pilot.press("ctrl+s")
+        save_input = ta.query_exactly_one(Input)
+        assert open_input is not save_input
+        assert save_input.id and "save" in save_input.id
+        assert save_input.has_focus
+        assert save_input.value == ""
+
+        await pilot.click(ta.text_input)
+        await pilot.pause(0.1)
+        assert ta.text_input.has_focus
+
+        await pilot.click(save_input)
+        await pilot.pause(0.1)
+        assert save_input.has_focus
