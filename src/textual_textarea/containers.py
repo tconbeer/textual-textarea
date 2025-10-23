@@ -1,6 +1,8 @@
 from typing import Any, Union
 
+from textual import on
 from textual.containers import Container, ScrollableContainer
+from textual.events import Click
 from textual.widget import Widget
 
 
@@ -34,7 +36,7 @@ class FooterContainer(
         FooterContainer {
             dock: bottom;
             height: auto;
-            width: 100%
+            width: 100%;
         }
         FooterContainer.hide {
             height: 0;
@@ -52,3 +54,12 @@ class FooterContainer(
         super().__init__(
             *children, name=name, id=id, classes=classes, disabled=disabled
         )
+
+    @on(Click)
+    def handle_click(self, event: Click) -> None:
+        """
+        Prevent clicks on inputs in the footer container from
+        bubbling up to the TextArea widget, which casuses
+        a race condition for the app focus.
+        """
+        event.stop()

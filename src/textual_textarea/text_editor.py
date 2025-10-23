@@ -10,7 +10,6 @@ import pyperclip
 from rich.console import RenderableType
 from textual import events, on, work
 from textual._cells import cell_len
-from textual._node_list import DuplicateIds
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.events import Paste
@@ -1216,10 +1215,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.text_input.completer_active = None
 
     @on(CancellableInput.Cancelled)
-    def clear_footer(self) -> None:
-        self._clear_footer_input()
-        if self.text_input is not None:
-            self.text_input.focus()
+    async def clear_footer(self) -> None:
+        await self._clear_footer_input()
 
     @on(Input.Changed)
     def update_validation_label(self, message: Input.Changed) -> None:
@@ -1251,10 +1248,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
                 label.update("")
         elif message.input.id in ("textarea__find_input"):
             message.stop()
+            self._update_find_label(value=message.value)
             self._find_next_after_cursor(value=message.value)
 
     @on(Input.Submitted, "#textarea__save_input")
-    def save_file(self, message: Input.Submitted) -> None:
+    async def save_file(self, message: Input.Submitted) -> None:
         """
         Handle the submit event for the Save and Open modals.
         """
@@ -1274,12 +1272,10 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             )
         else:
             self.post_message(TextAreaSaved(path=expanded_path))
-        self._clear_footer_input()
-        if self.text_input is not None:
-            self.text_input.focus()
+        await self._clear_footer_input()
 
     @on(Input.Submitted, "#textarea__open_input")
-    def open_file(self, message: Input.Submitted) -> None:
+    async def open_file(self, message: Input.Submitted) -> None:
         message.stop()
         expanded_path = Path(message.input.value).expanduser()
         try:
@@ -1295,12 +1291,10 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             )
         else:
             self.text = contents
-        self._clear_footer_input()
-        if self.text_input is not None:
-            self.text_input.focus()
+        await self._clear_footer_input()
 
     @on(Input.Submitted, "#textarea__gotoline_input")
-    def goto_line(self, message: Input.Submitted) -> None:
+    async def goto_line(self, message: Input.Submitted) -> None:
         message.stop()
         assert self.text_input is not None
         try:
@@ -1308,8 +1302,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         except (ValueError, TypeError):
             return
         self.text_input.move_cursor((new_line, 0), select=False)
-        self._clear_footer_input()
-        self.text_input.focus()
+        await self._clear_footer_input()
 
     @on(Input.Submitted, "#textarea__find_input")
     def find_next(self, message: Input.Submitted) -> None:
@@ -1341,15 +1334,13 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             self.text_input.register_theme(textarea_theme)
             self.text_input.theme = theme
 
-    def action_save(self) -> None:
-        self._clear_footer_input()
-        self._mount_footer_path_input("save")
+    async def action_save(self) -> None:
+        await self._mount_footer_path_input("save")
 
-    def action_load(self) -> None:
-        self._clear_footer_input()
-        self._mount_footer_path_input("open")
+    async def action_load(self) -> None:
+        await self._mount_footer_path_input("open")
 
-    def action_find(self, prepopulate_from_history: bool = False) -> None:
+    async def action_find(self, prepopulate_from_history: bool = False) -> None:
         try:
             find_input = self.footer.query_one(FindInput)
         except Exception:
@@ -1357,7 +1348,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             find_input.focus()
             return
-        self._clear_footer_input()
         if prepopulate_from_history and self._find_history:
             value = self._find_history[-1]
         else:
@@ -1367,9 +1357,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             history=self._find_history,
             classes="textarea--footer-input",
         )
-        self._mount_footer_input(input_widget=find_input)
+        await self._mount_footer_input(input_widget=find_input)
 
-    def action_goto_line(self) -> None:
+    async def action_goto_line(self) -> None:
         try:
             goto_input = self.footer.query_one(GotoLineInput)
         except Exception:
@@ -1377,7 +1367,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             goto_input.focus()
             return
-        self._clear_footer_input()
         goto_input = GotoLineInput(
             max_line_number=self.text_input.document.line_count
             if self.text_input is not None
@@ -1387,29 +1376,33 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             id="textarea__gotoline_input",
             classes="textarea--footer-input",
         )
-        self._mount_footer_input(input_widget=goto_input)
+        await self._mount_footer_input(input_widget=goto_input)
 
-    def _clear_footer_input(self) -> None:
-        try:
-            self.footer.query_one(Input).remove()
-        except Exception:
-            pass
-        try:
-            self.footer_label.update("")
-        except Exception:
-            pass
+    async def _clear_footer_input(self) -> None:
+        if self.footer.has_focus or self.footer.has_focus_within:
+            # move focus to the main text area
+            self.focus()
+        await self.footer.remove_children(Input)
+        self.footer_label.update("")
         self.footer.add_class("hide")
 
-    def _mount_footer_input(self, input_widget: Input) -> None:
+    async def _mount_footer_input(self, input_widget: Input) -> None:
+        """
+        Footer's first child is always the validation label. It may
+        or may not have a second child, which is an input.
+        """
+        if len(self.footer.children) > 1:
+            if self.footer.children[1].id == input_widget.id:
+                self.footer.children[1].focus()
+                return
+            else:
+                self.footer_label.update("")
+                await self.footer.remove_children(Input)
         self.footer.remove_class("hide")
-        try:
-            self.footer.mount(input_widget)
-        except DuplicateIds:
-            return
-        else:
-            input_widget.focus()
+        await self.footer.mount(input_widget)
+        input_widget.focus()
 
-    def _mount_footer_path_input(self, name: str) -> None:
+    async def _mount_footer_path_input(self, name: str) -> None:
         if name == "open":
             file_okay, dir_okay, must_exist = True, False, True
         else:
@@ -1423,13 +1416,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             must_exist=must_exist,
             classes="textarea--footer-input",
         )
-        self._mount_footer_input(input_widget=path_input)
+        await self._mount_footer_input(input_widget=path_input)
 
     def _find_next_after_cursor(self, value: str) -> None:
         assert self.text_input is not None
-        label = self.footer_label
         if not value:
-            label.update("")
             return
         cursor = self.selection.start
         lines = self.text_input.document.lines
@@ -1452,14 +1443,21 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
                     )
                     break
         self.text_input.scroll_cursor_visible(animate=True)
-        self._update_find_label(value=value)
 
     def _update_find_label(self, value: str) -> None:
         label = self.footer_label
+        if not value:
+            label.remove_class("validation-error")
+            label.update("")
+            return
+
         n_matches = self.text.count(value)
         if n_matches > 1:
+            label.remove_class("validation-error")
             label.update(f"{n_matches} found; Enter for next; ESC to close")
         elif n_matches > 0:
+            label.remove_class("validation-error")
             label.update(f"{n_matches} found")
         else:
+            label.add_class("validation-error")
             label.update("No results.")

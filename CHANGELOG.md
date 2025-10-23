@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a bug with the Open/Save/Find/Goto input's focus and appearance after attempting to open multiple inputs ([harlequin/#869](https://github.com/tconbeer/harlequin/issues/869)).
+
 ## [0.17.0] - 2025-10-22
 
 - **Breaking:** drops support for Textual &lt; 6.4, due to updated tree-sitter dependencies in that version.
