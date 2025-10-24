@@ -1163,7 +1163,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     def update_completion_list_offset(
         self, event: TextAreaPlus.SelectionChanged
     ) -> None:
-        event.stop()
         assert self.text_input is not None
         region_x, region_y, _, _ = self.text_input.region
         self.completion_list.cursor_offset = self.text_input.cursor_screen_offset - (
@@ -1173,7 +1172,6 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     @on(TextAreaPlus.Changed)
     def check_for_find_updates(self, event: TextAreaPlus.Changed) -> None:
-        event.stop()
         try:
             find_input = self.footer.query_one(FindInput)
         except Exception:
