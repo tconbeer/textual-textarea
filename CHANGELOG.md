@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- This widget no longer stops (prevents bubbling of) the Changed and SelectionChanged events.
+
 ## [0.17.1] - 2025-10-23
 
 - Fixes a bug with the Open/Save/Find/Goto input's focus and appearance after attempting to open multiple inputs ([harlequin/#869](https://github.com/tconbeer/harlequin/issues/869)).
