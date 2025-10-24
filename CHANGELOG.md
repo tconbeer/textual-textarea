@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.2] - 2025-10-24
+
 - This widget no longer stops (prevents bubbling of) the Changed and SelectionChanged events.
 
 ## [0.17.1] - 2025-10-23
@@ -298,7 +300,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...HEAD
+[0.17.2]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...0.17.2
 [0.17.1]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...0.17.1
 [0.17.0]: https://github.com/tconbeer/textual-textarea/compare/0.16.0...0.17.0
 [0.16.0]: https://github.com/tconbeer/textual-textarea/compare/0.15.0...0.16.0
