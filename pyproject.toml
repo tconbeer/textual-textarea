@@ -23,7 +23,7 @@ dev = [
     "pyinstrument>=5,<6",
 ]
 static = [
-    "ruff==0.14.1",
+    "ruff==0.14.7",
     "mypy==1.18.2",
 ]
 test = [
