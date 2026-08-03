@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.3] - 2026-08-03
+
 - Double-, triple-, and quadruple-click selection now uses Textual's `Click.chain`, instead of tracking consecutive clicks with a timer ([harlequin/#708](https://github.com/tconbeer/harlequin/issues/708)).
 - Fixes a bug where double-clicking a word shortly after double-clicking a different word would select the line or the whole document, instead of the second word.
 
@@ -303,7 +305,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...HEAD
+[0.17.3]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...0.17.3
 [0.17.2]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...0.17.2
 [0.17.1]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...0.17.1
 [0.17.0]: https://github.com/tconbeer/textual-textarea/compare/0.16.0...0.17.0
