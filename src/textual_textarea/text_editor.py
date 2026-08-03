@@ -15,7 +15,6 @@ from textual.binding import Binding
 from textual.events import Paste
 from textual.message import Message
 from textual.reactive import reactive
-from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Input, Label, OptionList, TextArea
 from textual.widgets.text_area import Location, Selection, SyntaxAwareDocument
@@ -208,9 +207,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
-        self.double_click_location: Location | None = None
-        self.double_click_timer: Timer | None = None
-        self.consecutive_clicks: int = 0
         self.system_copy: Callable[[Any], None] | None = None
         self.system_paste: Callable[[], str] | None = None
 
@@ -265,42 +261,23 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
         self.post_message(TextAreaHideCompletionList())
-        target = self.get_target_document_location(event)
-        if (
-            self.double_click_location is not None
-            and self.double_click_location == target
-        ):
-            event.prevent_default()
-            self._selecting = True
-            self.capture_mouse()
-            self._pause_blink(visible=True)
 
-    def on_mouse_up(self, event: events.MouseUp) -> None:
-        target = self.get_target_document_location(event)
-        if (
-            self.consecutive_clicks > 0
-            and self.double_click_location is not None
-            and self.double_click_location == target
-        ):
-            if self.consecutive_clicks == 1:
-                self.action_select_word()
-            elif self.consecutive_clicks == 2:
-                self.action_select_line()
-                self.action_cursor_right(select=True)
-            else:
-                self.action_select_all()
-            self.consecutive_clicks += 1
+    def on_click(self, event: events.Click) -> None:
+        """
+        Expand the selection for repeated clicks at the same location: a double
+        click selects the word under the cursor, a triple click selects the line,
+        and any further clicks select the whole document. Textual counts the
+        clicks in the chain for us.
+        """
+        if event.chain == 1:
+            return
+        elif event.chain == 2:
+            self.action_select_word()
+        elif event.chain == 3:
+            self.action_select_line()
+            self.action_cursor_right(select=True)
         else:
-            self.history.checkpoint()
-            self.double_click_location = target
-            self.consecutive_clicks += 1
-
-        if self.double_click_timer is not None:
-            self.double_click_timer.reset()
-        else:
-            self.double_click_timer = self.set_timer(
-                delay=0.5, callback=self._clear_double_click, name="double_click_timer"
-            )
+            self.action_select_all()
 
     def on_paste(self, event: Paste) -> None:
         event.prevent_default()
@@ -473,11 +450,6 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def action_redo(self) -> None:
         self.post_message(TextAreaHideCompletionList())
         super().action_redo()
-
-    def _clear_double_click(self) -> None:
-        self.consecutive_clicks = 0
-        self.double_click_location = None
-        self.double_click_timer = None
 
     def _copy_selection(self) -> None:
         if self.selected_text:

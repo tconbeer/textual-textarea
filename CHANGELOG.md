@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Double-, triple-, and quadruple-click selection now uses Textual's `Click.chain`, instead of tracking consecutive clicks with a timer ([harlequin/#708](https://github.com/tconbeer/harlequin/issues/708)).
+- Fixes a bug where double-clicking a word shortly after double-clicking a different word would select the line or the whole document, instead of the second word.
+
 ## [0.17.2] - 2025-10-24
 
 - This widget no longer stops (prevents bubbling of) the Changed and SelectionChanged events.
