@@ -4,6 +4,9 @@ from typing import List
 
 import pytest
 from textual.app import App
+from textual.events import MouseDown, MouseUp
+from textual.pilot import _get_mouse_message_arguments
+from textual.widget import Widget
 from textual.widgets.text_area import Selection
 
 from textual_textarea import TextEditor
@@ -461,3 +464,76 @@ async def test_toggle_comment(app: App) -> None:
         await pilot.press("ctrl+a")
         await pilot.press("ctrl+underscore")
         assert ta.text == "one\ntwo\n\nthree"
+
+
+async def _click(app: App, widget: Widget, offset: tuple[int, int]) -> None:
+    """
+    Post the mouse events for a single click, and let Textual count the click
+    chain itself. `pilot.click(times=n)` sets `chain` on the Click event directly,
+    so it can't show how consecutive clicks at different locations interact.
+    """
+    kwargs = _get_mouse_message_arguments(widget, offset, button=1)
+    app.post_message(MouseDown(**kwargs))
+    app.post_message(MouseUp(**kwargs))
+
+
+@pytest.mark.asyncio
+async def test_click_chain_selection(app: App) -> None:
+    """
+    A single click moves the cursor; repeated clicks at the same location expand
+    the selection to the word, then the line, then the whole document.
+    """
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = "select foo\nfrom bar"
+        ta.selection = Selection((0, 0), (0, 0))
+        await pilot.pause()
+        text_input = ta.text_input
+        assert text_input is not None
+
+        # the text starts after a four-character gutter; click inside "foo"
+        offset = (12, 0)
+
+        await _click(app, text_input, offset)
+        await pilot.pause()
+        assert ta.selection == Selection((0, 8), (0, 8))
+
+        await _click(app, text_input, offset)
+        await pilot.pause()
+        assert ta.selection == Selection((0, 7), (0, 10))
+
+        await _click(app, text_input, offset)
+        await pilot.pause()
+        assert ta.selection == Selection((0, 0), (1, 0))
+
+        await _click(app, text_input, offset)
+        await pilot.pause()
+        assert ta.selection == Selection((0, 0), (1, 8))
+
+
+@pytest.mark.asyncio
+async def test_click_chain_resets_at_a_new_location(app: App) -> None:
+    """
+    Double-clicking a word, then double-clicking a different word, selects the
+    second word: the second pair of clicks starts a new chain instead of
+    continuing the first one.
+    """
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = "select foo\nfrom barbarbar"
+        ta.selection = Selection((0, 0), (0, 0))
+        await pilot.pause()
+        text_input = ta.text_input
+        assert text_input is not None
+
+        # double click "foo"
+        for _ in range(2):
+            await _click(app, text_input, (12, 0))
+        await pilot.pause()
+        assert ta.selection == Selection((0, 7), (0, 10))
+
+        # double click "barbarbar" on the next line
+        for _ in range(2):
+            await _click(app, text_input, (12, 1))
+        await pilot.pause()
+        assert ta.selection == Selection((1, 5), (1, 14))
