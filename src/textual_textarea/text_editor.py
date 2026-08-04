@@ -1116,7 +1116,21 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         # self.text_input exists so watch_theme can do its thing.
         self.theme = self._theme
 
+    def focus(self, scroll_visible: bool = True) -> "TextEditor":
+        """
+        Focus the inner TextArea directly. Taking focus here first and then
+        forwarding it in on_focus would blur the TextArea on every call, and a
+        blur dismisses an open completion list.
+        """
+        if self.text_input is None:
+            super().focus(scroll_visible)
+        else:
+            self.text_input.focus(scroll_visible)
+        return self
+
     def on_focus(self) -> None:
+        # focus can also arrive from the focus chain (e.g. tab), which does not
+        # go through self.focus().
         if self.text_input is not None:
             self.text_input.focus()
 
