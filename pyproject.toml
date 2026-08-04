@@ -10,7 +10,7 @@ authors = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-    "textual[syntax]>=8.2.8,<9",
+    "textual[syntax]>=7.3.0,<9",
     "pyperclip>=1.9.0,<2",
 ]
 

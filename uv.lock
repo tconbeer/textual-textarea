@@ -1390,7 +1390,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "pyperclip", specifier = ">=1.9.0,<2" },
-    { name = "textual", extras = ["syntax"], specifier = ">=8.2.8,<9" },
+    { name = "textual", extras = ["syntax"], specifier = ">=7.3.0,<9" },
 ]
 
 [package.metadata.requires-dev]
