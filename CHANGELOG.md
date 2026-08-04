@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Breaking:** drops support for Textual &lt; 8.2.8.
+- Fixes a bug where focusing the `TextEditor` while it already had focus would dismiss an open autocomplete list. `TextEditor.focus()` now focuses the inner `TextArea` directly, instead of taking focus and forwarding it.
+- Adds <kbd>ctrl+backspace</kbd> and <kbd>alt+backspace</kbd> (delete word left) and <kbd>alt+delete</kbd> (delete word right), using Textual's own actions.
+- Adds <kbd>cmd</kbd> aliases for cut, copy, paste, undo, and redo, which Textual reports on terminals that support the Kitty keyboard protocol.
+- Copying now also writes to Textual's clipboard (which emits OSC 52), so copy works over ssh and in terminals where pyperclip has no backend.
+
 ## [0.17.3] - 2026-08-03
 
 - Double-, triple-, and quadruple-click selection now uses Textual's `Click.chain`, instead of tracking consecutive clicks with a timer ([harlequin/#708](https://github.com/tconbeer/harlequin/issues/708)).

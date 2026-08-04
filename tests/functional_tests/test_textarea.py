@@ -246,6 +246,28 @@ from textual_textarea import TextEditor
             "bar\nbaz",
             Selection(start=(0, 0), end=(1, 0)),
         ),
+        # word deletion, using Textual's own delete_word_left/right actions
+        (
+            ["ctrl+backspace"],
+            "foo bar",
+            Selection(start=(0, 7), end=(0, 7)),
+            "foo ",
+            Selection(start=(0, 4), end=(0, 4)),
+        ),
+        (
+            ["alt+backspace"],
+            "foo bar",
+            Selection(start=(0, 7), end=(0, 7)),
+            "foo ",
+            Selection(start=(0, 4), end=(0, 4)),
+        ),
+        (
+            ["alt+delete"],
+            "foo bar",
+            Selection(start=(0, 0), end=(0, 0)),
+            " bar",
+            Selection(start=(0, 0), end=(0, 0)),
+        ),
     ],
 )
 @pytest.mark.asyncio

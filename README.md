@@ -20,7 +20,8 @@ Full-featured text editor experience with VS-Code-like bindings, in your Textual
 - Syntax highlighting and support for Pygments themes.
 - Move cursor and scroll with mouse or keys (including <kbd>ctrl+arrow</kbd>, <kbd>PgUp/Dn</kbd>,  <kbd>ctrl+Home/End</kbd>).
 - Open (<kbd>ctrl+o</kbd>) and save (<kbd>ctrl+s</kbd>) files.
-- Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard.
+- Cut (<kbd>ctrl+x</kbd>), copy (<kbd>ctrl+c</kbd>), paste (<kbd>ctrl+u/v</kbd>), optionally using the system clipboard. On terminals that support the Kitty keyboard protocol, the <kbd>cmd</kbd> equivalents work too.
+- Delete a word with <kbd>ctrl+backspace</kbd>, <kbd>alt+backspace</kbd>, or <kbd>alt+delete</kbd>.
 - Comment selections with <kbd>ctrl+/</kbd>.
 - Indent and dedent (optionally for a multiline selection) to tab stops with <kbd>Tab</kbd> and <kbd>shift+Tab</kbd>.
 - Automatic completions of quotes and brackets.
