@@ -126,30 +126,31 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         Binding("shift+down", "cursor_down(True)", "cursor down select", show=False),
         Binding("shift+left", "cursor_left(True)", "cursor left select", show=False),
         Binding("shift+right", "cursor_right(True)", "cursor right select", show=False),
-        # Binding("f5", "select_word", "select word", show=False),
-        # Binding("f6", "select_line", "select line", show=False),
         Binding("ctrl+a", "select_all", "select all", show=False),
-        # Editing
+        # Editing. The super+ aliases are the cmd key on macOS; Textual reports
+        # them on terminals that support the Kitty keyboard protocol.
         Binding("ctrl+underscore", "toggle_comment", "toggle comment", show=False),
-        Binding("ctrl+x", "cut", "copy", show=False),
-        Binding("ctrl+c", "copy", "copy", show=False),
-        Binding("ctrl+u,ctrl+v,shift+insert", "paste", "paste", show=False),
-        Binding("ctrl+z", "undo", "undo", show=False),
-        Binding("ctrl+y", "redo", "redo", show=False),
+        Binding("ctrl+x,super+x", "cut", "cut", show=False),
+        Binding("ctrl+c,super+c", "copy", "copy", show=False),
+        Binding("ctrl+u,ctrl+v,super+v,shift+insert", "paste", "paste", show=False),
+        Binding("ctrl+z,super+z", "undo", "undo", show=False),
+        Binding("ctrl+y,super+y", "redo", "redo", show=False),
         # Deletion
         Binding("backspace", "delete_left", "delete left", show=False),
         Binding("delete", "delete_right", "delete right", show=False),
         Binding("shift+delete", "delete_line", "delete line", show=False),
-        # Binding(
-        #     "ctrl+w", "delete_word_left", "delete left to start of word", show=False
-        # ),
-        # Binding(
-        #     "ctrl+f", "delete_word_right", "delete right to start of word", show=False
-        # ),
-        # Binding(
-        #     "ctrl+u", "delete_to_start_of_line", "delete to line start", show=False
-        # ),
-        # Binding("ctrl+k", "delete_to_end_of_line", "delete to line end", show=False),
+        Binding(
+            "ctrl+backspace,alt+backspace",
+            "delete_word_left",
+            "delete left to start of word",
+            show=False,
+        ),
+        Binding(
+            "alt+delete",
+            "delete_word_right",
+            "delete right to start of word",
+            show=False,
+        ),
     ]
 
     clipboard: str = ""
@@ -460,6 +461,10 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                 self.get_cursor_line_end_location(),
             )
             self.clipboard = f"{whole_line}{self.document.newline}"
+        # Textual's own clipboard: sets App.clipboard and emits OSC 52, which
+        # reaches the system clipboard over ssh and in terminals where pyperclip
+        # has no backend.
+        self.app.copy_to_clipboard(self.clipboard)
         if self.use_system_clipboard and self.system_copy is not None:
             try:
                 self.system_copy(self.clipboard)
@@ -1017,6 +1022,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             self.post_message(TextAreaClipboardError(action="copy"))
             return
         self.text_input.clipboard = text
+        self.app.copy_to_clipboard(text)
         if self.use_system_clipboard and self.text_input.system_copy is not None:
             try:
                 self.text_input.system_copy(text)
@@ -1116,7 +1122,21 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         # self.text_input exists so watch_theme can do its thing.
         self.theme = self._theme
 
+    def focus(self, scroll_visible: bool = True) -> "TextEditor":
+        """
+        Focus the inner TextArea directly. Taking focus here first and then
+        forwarding it in on_focus would blur the TextArea on every call, and a
+        blur dismisses an open completion list.
+        """
+        if self.text_input is None:
+            super().focus(scroll_visible)
+        else:
+            self.text_input.focus(scroll_visible)
+        return self
+
     def on_focus(self) -> None:
+        # focus can also arrive from the focus chain (e.g. tab), which does not
+        # go through self.focus().
         if self.text_input is not None:
             self.text_input.focus()
 
@@ -1144,9 +1164,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
 
     @on(TextAreaPlus.Changed)
     def check_for_find_updates(self, event: TextAreaPlus.Changed) -> None:
-        try:
-            find_input = self.footer.query_one(FindInput)
-        except Exception:
+        find_input = self.footer.query_one_optional(FindInput)
+        if find_input is None:
             return
         self._update_find_label(value=find_input.value)
 
@@ -1311,12 +1330,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         await self._mount_footer_path_input("open")
 
     async def action_find(self, prepopulate_from_history: bool = False) -> None:
-        try:
-            find_input = self.footer.query_one(FindInput)
-        except Exception:
-            pass
-        else:
-            find_input.focus()
+        existing_input = self.footer.query_one_optional(FindInput)
+        if existing_input is not None:
+            existing_input.focus()
             return
         if prepopulate_from_history and self._find_history:
             value = self._find_history[-1]
@@ -1330,12 +1346,9 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         await self._mount_footer_input(input_widget=find_input)
 
     async def action_goto_line(self) -> None:
-        try:
-            goto_input = self.footer.query_one(GotoLineInput)
-        except Exception:
-            pass
-        else:
-            goto_input.focus()
+        existing_input = self.footer.query_one_optional(GotoLineInput)
+        if existing_input is not None:
+            existing_input.focus()
             return
         goto_input = GotoLineInput(
             max_line_number=self.text_input.document.line_count

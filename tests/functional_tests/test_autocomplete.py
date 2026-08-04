@@ -133,6 +133,31 @@ async def test_autocomplete(
 
 
 @pytest.mark.asyncio
+async def test_focus_does_not_dismiss_completion_list(
+    app: App, word_completer: Callable[[str], list[tuple[str, str]]]
+) -> None:
+    """
+    Focusing the TextEditor when it already holds focus must not blur the inner
+    TextArea, since the blur dismisses an open completion list.
+    """
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = word_completer
+        assert ta.text_input is not None
+
+        await pilot.press("s")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        assert ta.completion_list.is_open is True
+
+        ta.focus()
+        await pilot.pause()
+        assert ta.text_input.has_focus is True
+        assert ta.text_input.completer_active == "word"
+        assert ta.completion_list.is_open is True
+
+
+@pytest.mark.asyncio
 async def test_autocomplete_with_types(
     app: App,
     word_completer_with_types: Callable[[str], list[tuple[tuple[str, str], str]]],
