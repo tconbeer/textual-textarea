@@ -72,7 +72,7 @@ select = ["A", "B", "E", "F", "I"]
 
 [tool.mypy]
 
-python_version = "3.9"
+python_version = "3.10"
 files = [
     "src/**/*.py",
     "tests/**/*.py",
