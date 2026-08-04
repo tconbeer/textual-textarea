@@ -4,7 +4,7 @@ from typing import List
 
 import pytest
 from textual.app import App
-from textual.events import MouseDown, MouseUp
+from textual.events import MouseDown, MouseUp, Paste
 from textual.pilot import _get_mouse_message_arguments
 from textual.widget import Widget
 from textual.widgets.text_area import Selection
@@ -559,3 +559,25 @@ async def test_click_chain_resets_at_a_new_location(app: App) -> None:
             await _click(app, text_input, (12, 1))
         await pilot.pause()
         assert ta.selection == Selection((1, 5), (1, 14))
+
+
+@pytest.mark.asyncio
+async def test_paste_scrolls_cursor_into_view(app: App) -> None:
+    """
+    Pasting a line wider than the viewport leaves the cursor on screen.
+
+    TextArea.replace() scrolled the cursor into view on Textual 6.4, but stopped
+    doing so in 7.x, so on_paste has to ask for the scroll itself.
+    """
+    async with app.run_test(size=(80, 24)) as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        text_input = ta.text_input
+        assert text_input is not None
+        ta.text = ""
+        await pilot.pause()
+
+        text_input.post_message(Paste("x" * 200))
+        await pilot.pause()
+
+        assert ta.selection == Selection((0, 200), (0, 200))
+        assert text_input.scroll_offset.x > 0

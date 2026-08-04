@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Adds <kbd>ctrl+backspace</kbd> and <kbd>alt+backspace</kbd> (delete word left) and <kbd>alt+delete</kbd> (delete word right), using Textual's own actions.
 - Adds <kbd>cmd</kbd> aliases for cut, copy, paste, undo, and redo, which Textual reports on terminals that support the Kitty keyboard protocol.
 - Copying now also writes to Textual's clipboard (which emits OSC 52), so copy works over ssh and in terminals where pyperclip has no backend.
+- Fixes a bug where pasting text or accepting a completion wider than the viewport left the cursor scrolled off-screen. Textual's `TextArea.replace()` scrolled the cursor into view through 6.4 but stopped in 7.x, so both call sites now scroll explicitly.
 
 ## [0.17.3] - 2026-08-03
 
