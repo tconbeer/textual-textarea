@@ -303,3 +303,48 @@ async def test_autocomplete_members(
         assert ta.text_input is not None
         assert ta.text_input.completer_active == "member"
         assert ta.completion_list.is_open is True
+
+
+@pytest.mark.asyncio
+async def test_accepting_completion_scrolls_cursor_into_view(app: App) -> None:
+    """
+    Accepting a completion wider than the viewport leaves the cursor on screen.
+
+    Same Textual 7.x behavior change as test_paste_scrolls_cursor_into_view:
+    replace() no longer scrolls the cursor into view on its own.
+    """
+    long_word = "s" + "u" * 150
+
+    def completer(prefix: str) -> list[tuple[str, str]]:
+        return [(long_word, long_word)]
+
+    async with app.run_test(size=(80, 24)) as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = completer
+        ta.focus()
+        while ta.word_completer is None:
+            await pilot.pause()
+        assert ta.text_input is not None
+
+        # start at the right edge of the viewport, but still on screen
+        prefix = "-" * 70
+        ta.text = prefix
+        ta.selection = Selection((0, len(prefix)), (0, len(prefix)))
+        await pilot.pause()
+        assert ta.text_input.scroll_offset.x == 0
+
+        start_time = monotonic()
+        await pilot.press("s")
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
+            await pilot.pause()
+        assert ta.completion_list.is_open is True
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert ta.text == prefix + long_word
+        assert ta.selection.end[1] == len(prefix) + len(long_word)
+        assert ta.text_input.scroll_offset.x > 0

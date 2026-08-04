@@ -286,6 +286,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self.post_message(TextAreaHideCompletionList())
         self.history.checkpoint()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
+        # replace() scrolled the cursor into view on Textual 6.4, but stopped
+        # doing so in 7.x, so pasting a long line left the cursor off-screen.
+        self.scroll_cursor_visible()
 
     @on(ClipboardReady)
     def _set_clipboard(self, message: ClipboardReady) -> None:
@@ -304,6 +307,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             end=self.cursor_location,
             maintain_selection_offset=False,
         )
+        # see on_paste: replace() no longer scrolls the cursor into view.
+        self.scroll_cursor_visible()
 
     @work(thread=True)
     def _determine_clipboard(self) -> None:
