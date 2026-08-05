@@ -69,6 +69,29 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         &:focus {
             border: none;
         }
+
+        /* TextArea shades the cursor's line and gutter with $boost. Through
+        Textual 6, $boost was the contrast text at 4% alpha; since Textual 7 it
+        is only computed for themes that leave `panel` unset, so it is fully
+        transparent for every built-in theme but textual-dark, and the shading
+        disappears. Restore it with the value $boost used to have. */
+        &:dark {
+            & .text-area--cursor-line {
+                background: white 4%;
+            }
+            & .text-area--cursor-gutter {
+                background: white 4%;
+            }
+        }
+
+        &:light {
+            & .text-area--cursor-line {
+                background: black 4%;
+            }
+            & .text-area--cursor-gutter {
+                background: black 4%;
+            }
+        }
     }
     """
     BINDINGS = [

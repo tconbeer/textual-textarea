@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a bug where the line containing the cursor was no longer shaded. Textual computes `$boost` (which shades the cursor's line and gutter) only for themes that leave `panel` unset, so the shading disappeared for every built-in theme except `textual-dark`.
+
 ## [0.18.0] - 2026-08-05
 
 - **Breaking:** drops support for Textual &lt; 7.3.
