@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-08-05
+
 - Fixes a bug where the line containing the cursor was no longer shaded. Textual computes `$boost` (which shades the cursor's line and gutter) only for themes that leave `panel` unset, so the shading disappeared for every built-in theme except `textual-dark`.
 
 ## [0.18.0] - 2026-08-05
@@ -316,7 +318,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...HEAD
+[0.18.1]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...0.18.1
 [0.18.0]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...0.18.0
 [0.17.3]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...0.17.3
 [0.17.2]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...0.17.2
