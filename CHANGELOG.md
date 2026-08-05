@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-08-05
+
 - **Breaking:** drops support for Textual &lt; 7.3.
 - Fixes a bug where focusing the `TextEditor` while it already had focus would dismiss an open autocomplete list. `TextEditor.focus()` now focuses the inner `TextArea` directly, instead of taking focus and forwarding it.
 - Adds <kbd>ctrl+backspace</kbd> and <kbd>alt+backspace</kbd> (delete word left) and <kbd>alt+delete</kbd> (delete word right), using Textual's own actions.
@@ -312,7 +314,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...HEAD
+[0.18.0]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...0.18.0
 [0.17.3]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...0.17.3
 [0.17.2]: https://github.com/tconbeer/textual-textarea/compare/0.17.1...0.17.2
 [0.17.1]: https://github.com/tconbeer/textual-textarea/compare/0.17.0...0.17.1
