@@ -115,6 +115,20 @@ old_language = editor.language
 editor.language = "python"
 ```
 
+#### Autocompletion
+
+The TextEditor shows a completion list as the user types. You supply the completions by setting the `word_completer`, `member_completer`, and `path_completer` properties to callables that accept the text before the cursor and return a list of completions.
+
+The word and member completers stay closed when the cursor is inside a comment or a string literal, where a completion is noise -- and, because the list preselects its first option, destructive on <kbd>enter</kbd>. Two things keep working there: the path completer, since completing a path inside a string (`read_csv('/data/...`) is exactly what it is for, and completions after a quoted identifier, since SQL's `"my col"` and `` `my col` `` are identifiers, not strings.
+
+Which nodes count as a comment or a string depends on the configured language; they are declared per language in `textual_textarea/completion_scopes.py`, and a language declared in neither mapping completes everywhere. You can also turn either kind of suppression off:
+
+```python
+editor = TextEditor(language="sql", suppress_completion_in_strings=False)
+...
+editor.suppress_completion_in_comments = False
+```
+
 #### Getting Theme Colors
 
 If you would like the rest of your app to match the colors from the TextArea's theme, they are exposed via the `theme_colors` property.

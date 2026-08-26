@@ -14,26 +14,6 @@ from textual_textarea import TextEditor
 
 
 @pytest.fixture
-def word_completer() -> Callable[[str], list[tuple[str, str]]]:
-    def _completer(prefix: str) -> list[tuple[str, str]]:
-        words = [
-            "satisfy",
-            "season",
-            "second",
-            "seldom",
-            "select",
-            "self",
-            "separate",
-            "set",
-            "space",
-            "super",
-        ]
-        return [(w, w) for w in words if w.startswith(prefix)]
-
-    return _completer
-
-
-@pytest.fixture
 def word_completer_with_types() -> Callable[[str], list[tuple[tuple[str, str], str]]]:
     def _completer(prefix: str) -> list[tuple[tuple[str, str], str]]:
         words = [
@@ -51,13 +31,6 @@ def word_completer_with_types() -> Callable[[str], list[tuple[tuple[str, str], s
         return [((w, "word"), w) for w in words if w.startswith(prefix)]
 
     return _completer
-
-
-@pytest.fixture
-def member_completer() -> Callable[[str], list[tuple[str, str]]]:
-    mock = MagicMock()
-    mock.return_value = [("completion", "completion")]
-    return mock
 
 
 @pytest.mark.asyncio

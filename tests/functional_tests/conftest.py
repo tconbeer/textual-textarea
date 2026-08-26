@@ -1,4 +1,4 @@
-from typing import Type, Union
+from typing import Callable, Type, Union
 from unittest.mock import MagicMock
 
 import pytest
@@ -38,6 +38,45 @@ class TextEditorApp(App, inherit_bindings=False):
 def app() -> App:
     app = TextEditorApp(language="python")
     return app
+
+
+@pytest.fixture
+def sql_app() -> App:
+    app = TextEditorApp(language="sql")
+    return app
+
+
+@pytest.fixture
+def markdown_app() -> App:
+    app = TextEditorApp(language="markdown")
+    return app
+
+
+@pytest.fixture
+def word_completer() -> Callable[[str], list[tuple[str, str]]]:
+    def _completer(prefix: str) -> list[tuple[str, str]]:
+        words = [
+            "satisfy",
+            "season",
+            "second",
+            "seldom",
+            "select",
+            "self",
+            "separate",
+            "set",
+            "space",
+            "super",
+        ]
+        return [(w, w) for w in words if w.startswith(prefix)]
+
+    return _completer
+
+
+@pytest.fixture
+def member_completer() -> MagicMock:
+    mock = MagicMock()
+    mock.return_value = [("completion", "completion")]
+    return mock
 
 
 @pytest.fixture(

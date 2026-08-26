@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- The word and member completers no longer open when the cursor is inside a comment or a string literal ([#341](https://github.com/tconbeer/textual-textarea/issues/341), [harlequin/#803](https://github.com/tconbeer/harlequin/issues/803)). Typing inside a string used to open the word completer, and since the list preselects its first item, <kbd>enter</kbd> replaced what was typed with a completion. The path completer is unaffected, and neither are quoted identifiers (SQL's `"my col"`), which are identifiers, not strings.
+- Adds `suppress_completion_in_comments` and `suppress_completion_in_strings` arguments and properties to `TextEditor`, both defaulting to `True`, to restore the old behavior. A language with no comment or string nodes declared in the new `completion_scopes` module completes everywhere, as before.
+
 ## [0.18.1] - 2026-08-05
 
 - Fixes a bug where the line containing the cursor was no longer shaded. Textual computes `$boost` (which shades the cursor's line and gutter) only for themes that leave `panel` unset, so the shading disappeared for every built-in theme except `textual-dark`.

@@ -23,6 +23,13 @@ from textual_textarea.autocomplete import CompletionList
 from textual_textarea.cancellable_input import CancellableInput
 from textual_textarea.colors import text_area_theme_from_app_theme
 from textual_textarea.comments import INLINE_MARKERS
+from textual_textarea.completion_scopes import (
+    COMMENT_NODES,
+    INTERPOLATION_NODES,
+    STRING_NODES,
+    is_string,
+    scan_for_unterminated_scope,
+)
 from textual_textarea.containers import FooterContainer, TextContainer
 from textual_textarea.error_modal import ErrorModal
 from textual_textarea.find_input import FindInput
@@ -178,6 +185,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
 
     clipboard: str = ""
     completer_active: Literal["path", "member", "word"] | None = None
+    suppress_completion_in_comments: bool = True
+    suppress_completion_in_strings: bool = True
 
     class ShowCompletionList(Message):
         def __init__(self, prefix: str) -> None:
@@ -211,6 +220,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         theme: str = "css",
         use_system_clipboard: bool = True,
         read_only: bool = False,
+        suppress_completion_in_comments: bool = True,
+        suppress_completion_in_strings: bool = True,
         name: str | None = None,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
@@ -230,6 +241,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             read_only=read_only,
         )
         self.cursor_blink = False if self.app.is_headless else True
+        self.suppress_completion_in_comments = suppress_completion_in_comments
+        self.suppress_completion_in_strings = suppress_completion_in_strings
         self.use_system_clipboard = use_system_clipboard
         self.system_copy: Callable[[Any], None] | None = None
         self.system_paste: Callable[[], str] | None = None
@@ -541,6 +554,122 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         else:
             return ""
 
+    def _get_node_before_cursor(self) -> "Node" | None:
+        """
+        The innermost syntax tree node containing the character before the
+        cursor, or None if the document isn't parsed or the cursor is at the
+        start of it.
+
+        The character before the cursor, not the one at it: the cursor sits at
+        the end of the word being typed, and tree-sitter's point ranges are
+        half-open, so a point at the cursor itself is already outside the node
+        the word belongs to.
+        """
+        document = self.document
+        if not isinstance(document, SyntaxAwareDocument):
+            return None
+        location = self.get_cursor_left_location()
+        if location == self.cursor_location:
+            return None
+        row, column = location
+        point = (row, len(document.get_line(row)[:column].encode("utf-8")))
+        return document._syntax_tree.root_node.descendant_for_point_range(point, point)
+
+    def _get_node_opening_characters(self, node: "Node", count: int = 8) -> str:
+        """
+        The first count characters of a node's text, read from the document so
+        that a node spanning a large amount of text isn't copied on every
+        keypress.
+        """
+        row, byte_column = node.start_point
+        line = self.document.get_line(row).encode("utf-8")
+        return line[byte_column : byte_column + count].decode("utf-8", errors="ignore")
+
+    def _cursor_is_inside_node(
+        self, node: "Node", unclosed_at_end_of_line: bool = False
+    ) -> bool:
+        """
+        Whether the cursor is inside a node that contains the character before
+        it, as opposed to sitting just past the node's end.
+
+        The distinction matters at a closing delimiter: `"abc"` no longer
+        encloses the cursor once it is past the closing quote, and completing a
+        member of a string literal is a real thing to want. A comment that runs
+        to the end of its line has no closing delimiter to get past, though, so
+        callers pass unclosed_at_end_of_line for those. That does mean the
+        first character typed directly after a block comment that ends a line
+        gets no completions.
+        """
+        row, column = self.cursor_location
+        cursor_point = (row, len(self.document.get_line(row)[:column].encode("utf-8")))
+        if cursor_point < node.end_point:
+            return True
+        if not unclosed_at_end_of_line:
+            return False
+        end_row, end_byte_column = node.end_point
+        return end_byte_column >= len(self.document.get_line(end_row).encode("utf-8"))
+
+    def _cursor_is_in_no_completion_scope(self) -> bool:
+        """
+        Whether the cursor sits inside a comment or a string literal, where a
+        word or member completion is noise -- and, since the completion list
+        preselects its first option, destructive on enter.
+        """
+        language = self.language
+        if language is None:
+            return False
+        comment_nodes = (
+            COMMENT_NODES.get(language, ())
+            if self.suppress_completion_in_comments
+            else ()
+        )
+        string_nodes = (
+            STRING_NODES.get(language, ())
+            if self.suppress_completion_in_strings
+            else ()
+        )
+        if not comment_nodes and not string_nodes:
+            return False
+
+        interpolation_nodes = INTERPOLATION_NODES.get(language, ())
+        node = self._get_node_before_cursor()
+        while node is not None:
+            if node.type in interpolation_nodes:
+                # an f-string's braces (or a template literal's ${}) contain
+                # code, not string content.
+                return False
+            if node.type in comment_nodes and self._cursor_is_inside_node(
+                node, unclosed_at_end_of_line=True
+            ):
+                return True
+            if (
+                node.type in string_nodes
+                and is_string(language, self._get_node_opening_characters(node))
+                and self._cursor_is_inside_node(node)
+            ):
+                return True
+            node = node.parent
+
+        if self._syntax_tree_has_error():
+            # an unterminated string or block comment doesn't parse to a node
+            # of its own type, so fall back to scanning the line whenever the
+            # tree has an error.
+            row, column = self.cursor_location
+            scope = scan_for_unterminated_scope(
+                language, self.document.get_line(row)[:column]
+            )
+            if scope == "comment":
+                return bool(comment_nodes)
+            if scope == "string":
+                return bool(string_nodes)
+        return False
+
+    def _syntax_tree_has_error(self) -> bool:
+        document = self.document
+        if not isinstance(document, SyntaxAwareDocument):
+            return False
+        return bool(document._syntax_tree.root_node.has_error)
+
     def _handle_backspace(self, event: events.Key) -> None:
         if self.completer_active is not None:
             current_word = self._get_word_before_cursor(event)
@@ -615,6 +744,9 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_separator(self, event: events.Key) -> None:
         event.stop()
         if self.completer_active != "path":
+            if self._cursor_is_in_no_completion_scope():
+                self.post_message(TextAreaHideCompletionList())
+                return
             self.completer_active = "member"
         prefix = self._get_word_before_cursor(event)
         self.post_message(self.ShowCompletionList(prefix=prefix))
@@ -673,10 +805,12 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def _handle_printable_character(self, event: events.Key) -> None:
         assert event.character is not None, "Error! Printable key with no character."
         if self.completer_active is None:
-            if WORD_PROG.match(event.character) is not None:
-                self.completer_active = "word"
-            else:
+            if WORD_PROG.match(event.character) is None:
                 return
+            if self._cursor_is_in_no_completion_scope():
+                self.post_message(TextAreaHideCompletionList())
+                return
+            self.completer_active = "word"
         current_word = self._get_word_before_cursor(event)
         if current_word:
             self.post_message(self.ShowCompletionList(prefix=current_word))
@@ -852,6 +986,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         theme: str = "css",
         text: str = "",
         use_system_clipboard: bool = True,
+        suppress_completion_in_comments: bool = True,
+        suppress_completion_in_strings: bool = True,
         path_completer: (
             Callable[
                 [str],
@@ -885,6 +1021,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             language (str): Must be the short name of a tree-sitter language,
                 e.g., "python", "sql"
             theme (str): Must be name of a Textual Theme.
+            suppress_completion_in_comments (bool): Set to False to offer word
+                and member completions inside comments.
+            suppress_completion_in_strings (bool): Set to False to offer word
+                and member completions inside string literals. The path
+                completer is unaffected either way: completing a path inside a
+                string is the whole point of it.
         """
         super().__init__(
             *children,
@@ -896,6 +1038,8 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self._language = language
         self._theme = theme
         self._initial_text = text
+        self._suppress_completion_in_comments = suppress_completion_in_comments
+        self._suppress_completion_in_strings = suppress_completion_in_strings
         self._find_history: list[str] = []
         self.use_system_clipboard = use_system_clipboard
         self.text_input: TextAreaPlus | None = None
@@ -984,6 +1128,36 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         if self.text_input is None:
             return None
         self.text_input.language = language
+
+    @property
+    def suppress_completion_in_comments(self) -> bool:
+        """
+        Returns:
+            bool: Whether the word and member completers stay closed inside a
+            comment.
+        """
+        return self._suppress_completion_in_comments
+
+    @suppress_completion_in_comments.setter
+    def suppress_completion_in_comments(self, suppress: bool) -> None:
+        self._suppress_completion_in_comments = suppress
+        if self.text_input is not None:
+            self.text_input.suppress_completion_in_comments = suppress
+
+    @property
+    def suppress_completion_in_strings(self) -> bool:
+        """
+        Returns:
+            bool: Whether the word and member completers stay closed inside a
+            string literal. The path completer is unaffected either way.
+        """
+        return self._suppress_completion_in_strings
+
+    @suppress_completion_in_strings.setter
+    def suppress_completion_in_strings(self, suppress: bool) -> None:
+        self._suppress_completion_in_strings = suppress
+        if self.text_input is not None:
+            self.text_input.suppress_completion_in_strings = suppress
 
     @property
     def line_count(self) -> int:
@@ -1134,7 +1308,11 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
     def compose(self) -> ComposeResult:
         self.text_container = TextContainer()
         self.text_input = TextAreaPlus(
-            language=self._language, text=self._initial_text, read_only=self.read_only
+            language=self._language,
+            text=self._initial_text,
+            read_only=self.read_only,
+            suppress_completion_in_comments=self._suppress_completion_in_comments,
+            suppress_completion_in_strings=self._suppress_completion_in_strings,
         )
         self.completion_list = CompletionList()
         self.footer = FooterContainer(classes="hide")
