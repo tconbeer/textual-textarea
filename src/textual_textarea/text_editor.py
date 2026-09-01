@@ -1279,7 +1279,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             expanded_path.parent.mkdir(parents=True, exist_ok=True)
             with open(expanded_path, "w") as f:
                 f.write(self.text)
-        except OSError as e:
+        except (OSError, UnicodeError) as e:
             self.app.push_screen(
                 ErrorModal(
                     title="Save File Error",
@@ -1298,7 +1298,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         try:
             with open(expanded_path, "r") as f:
                 contents = f.read()
-        except OSError as e:
+        except (OSError, UnicodeError) as e:
             self.app.push_screen(
                 ErrorModal(
                     title="Open File Error",

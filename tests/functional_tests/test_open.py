@@ -7,6 +7,7 @@ from textual.message import Message
 from textual.widgets import Input
 
 from textual_textarea import TextAreaSaved, TextEditor
+from textual_textarea.error_modal import ErrorModal
 
 
 @pytest.mark.parametrize("filename", ["foo.py", "empty.py"])
@@ -42,6 +43,26 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         await pilot.press("ctrl+end")
         assert ta.selection.end[1] >= 0
         await pilot.press("enter")
+
+
+@pytest.mark.asyncio
+async def test_open_binary_file(app: App, tmp_path: Path) -> None:
+    """A file that isn't text shows the error modal instead of crashing."""
+    p = tmp_path / "database.db"
+    p.write_bytes(b"\xcd\xe3k.4,9\x97DUCK")
+
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = "123"
+
+        await pilot.press("ctrl+o")
+        open_input = ta.query_one(Input)
+        open_input.value = str(p)
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert isinstance(app.screen, ErrorModal)
+        assert ta.text == "123"
 
 
 @pytest.mark.asyncio
