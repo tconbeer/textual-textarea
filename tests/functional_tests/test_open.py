@@ -1,3 +1,4 @@
+import locale
 from pathlib import Path
 from typing import List
 
@@ -45,11 +46,27 @@ async def test_open(data_dir: Path, app: App, filename: str) -> None:
         await pilot.press("enter")
 
 
+NOT_TEXT = b"\x81\x8d\x8f\x90\x9dDUCK"
+"""Bytes no text file holds: undefined in UTF-8 and in Windows' cp1252 alike."""
+
+
+def _decodes_here(data: bytes) -> bool:
+    """Whether this platform's default text codec reads `data` -- some read anything."""
+    try:
+        data.decode(locale.getpreferredencoding(False))
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+@pytest.mark.skipif(
+    _decodes_here(NOT_TEXT), reason="this platform's text codec decodes every byte"
+)
 @pytest.mark.asyncio
 async def test_open_binary_file(app: App, tmp_path: Path) -> None:
     """A file that isn't text shows the error modal instead of crashing."""
     p = tmp_path / "database.db"
-    p.write_bytes(b"\xcd\xe3k.4,9\x97DUCK")
+    p.write_bytes(NOT_TEXT)
 
     async with app.run_test() as pilot:
         ta = app.query_one("#ta", expect_type=TextEditor)
