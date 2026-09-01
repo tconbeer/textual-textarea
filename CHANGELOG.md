@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-09-01
+
 - Opening a file that isn't text (or saving one your system's encoding can't write) now shows an error, instead of crashing ([harlequin/#1108](https://github.com/tconbeer/harlequin/issues/1108)).
 
 ## [0.18.1] - 2026-08-05
@@ -320,7 +322,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...HEAD
+[0.18.2]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...0.18.1
 [0.18.0]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...0.18.0
 [0.17.3]: https://github.com/tconbeer/textual-textarea/compare/0.17.2...0.17.3
