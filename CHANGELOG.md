@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Opening a file that isn't text (or saving one your system's encoding can't write) now shows an error, instead of crashing ([harlequin/#1108](https://github.com/tconbeer/harlequin/issues/1108)).
+
 ## [0.18.1] - 2026-08-05
 
 - Fixes a bug where the line containing the cursor was no longer shaded. Textual computes `$boost` (which shades the cursor's line and gutter) only for themes that leave `panel` unset, so the shading disappeared for every built-in theme except `textual-dark`.
