@@ -306,6 +306,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
     def on_paste(self, event: Paste) -> None:
         event.prevent_default()
         event.stop()
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         self.history.checkpoint()
         self.replace(event.text, *self.selection, maintain_selection_offset=False)
@@ -343,6 +345,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self._copy_selection()
 
     def action_cut(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         self.history.checkpoint()
         self._copy_selection()
@@ -367,6 +371,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self.selection = Selection(start=self.document.end, end=self.document.end)
 
     def action_delete_line(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         self.history.checkpoint()
         if self.selection.start != self.cursor_location:  # selection active
@@ -386,6 +392,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                 self.cursor_location = (line, 0)
 
     def action_paste(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         if self.use_system_clipboard and self.system_paste is not None:
             try:
@@ -420,6 +428,8 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             self.scroll_relative(y=-1, animate=False)
 
     def action_toggle_comment(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         if self.inline_comment_marker:
             self.history.checkpoint()
@@ -473,10 +483,14 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
                             )
 
     def action_undo(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         super().action_undo()
 
     def action_redo(self) -> None:
+        if self.read_only:
+            return
         self.post_message(TextAreaHideCompletionList())
         super().action_redo()
 

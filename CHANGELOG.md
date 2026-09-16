@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a bug where a `read_only` text area could still be edited from the keyboard: <kbd>ctrl+v</kbd>, <kbd>ctrl+u</kbd>, <kbd>shift+insert</kbd>, and <kbd>super+v</kbd> (paste), <kbd>ctrl+x</kbd> and <kbd>super+x</kbd> (cut), <kbd>ctrl+z</kbd> and <kbd>super+z</kbd> (undo), <kbd>ctrl+y</kbd> and <kbd>super+y</kbd> (redo), <kbd>ctrl+_</kbd> (toggle comment), and <kbd>shift+delete</kbd> (delete line) all mutated the document ([#346](https://github.com/tconbeer/textual-textarea/issues/346)). Pasting from the terminal (a bracketed paste) did, too.
+
 ## [0.18.2] - 2026-09-01
 
 - Opening a file that isn't text (or saving one your system's encoding can't write) now shows an error, instead of crashing ([harlequin/#1108](https://github.com/tconbeer/harlequin/issues/1108)).
