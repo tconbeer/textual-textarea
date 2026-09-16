@@ -211,6 +211,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         theme: str = "css",
         use_system_clipboard: bool = True,
         read_only: bool = False,
+        show_cursor: bool = True,
         name: str | None = None,
         id: str | None = None,  # noqa: A002
         classes: str | None = None,
@@ -228,6 +229,7 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             tab_behavior="indent",
             show_line_numbers=True,
             read_only=read_only,
+            show_cursor=show_cursor,
         )
         self.cursor_blink = False if self.app.is_headless else True
         self.use_system_clipboard = use_system_clipboard
@@ -638,7 +640,13 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         starting in textual 0.49, escape is handled by on_key instead of
         a binding, so we inherited behavior we don't want. Trap this event
         and hide the completion list.
+
+        A read-only editor with no completion list open has nothing to do
+        with escape, so we let it bubble instead; a screen that shows a
+        preview usually binds escape to dismiss it.
         """
+        if self.read_only and self.completer_active is None:
+            return
         event.stop()
         event.prevent_default()
         self.selection = Selection(self.selection.end, self.selection.end)
@@ -852,6 +860,10 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
+    READ_ONLY_DISABLED_ACTIONS = frozenset({"save", "load", "find", "goto_line"})
+    """The actions (and their bindings) that a read_only editor disables.
+    Subclasses can narrow this, e.g. to keep find in a read-only preview."""
+
     theme: reactive[str] = reactive("monokai")
 
     def __init__(
@@ -862,6 +874,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         classes: str | None = None,
         disabled: bool = False,
         read_only: bool = False,
+        show_cursor: bool = True,
         language: str | None = None,
         theme: str = "css",
         text: str = "",
@@ -899,6 +912,12 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             language (str): Must be the short name of a tree-sitter language,
                 e.g., "python", "sql"
             theme (str): Must be name of a Textual Theme.
+            read_only (bool): If True, the contents can't be edited from the
+                keyboard, and the bindings in READ_ONLY_DISABLED_ACTIONS
+                (save, open, find, and goto line) are disabled.
+            show_cursor (bool): If False, the editor doesn't draw a cursor or
+                shade the line containing it, and it scrolls like an ordinary
+                container. Pair with read_only=True for a preview pane.
         """
         super().__init__(
             *children,
@@ -914,6 +933,7 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         self.use_system_clipboard = use_system_clipboard
         self.text_input: TextAreaPlus | None = None
         self.read_only = read_only
+        self._show_cursor = show_cursor
         self.path_completer = path_completer
         self.member_completer = member_completer
         self.word_completer = word_completer
@@ -945,6 +965,23 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
             maintain_selection_offset=False,
         )
         self.text_input.move_cursor((0, 0))
+
+    @property
+    def show_cursor(self) -> bool:
+        """
+        Returns:
+            (bool) True if the editor draws a cursor (and shades the line that
+            contains it).
+        """
+        if self.text_input is None:
+            return self._show_cursor
+        return self.text_input.show_cursor
+
+    @show_cursor.setter
+    def show_cursor(self, value: bool) -> None:
+        self._show_cursor = value
+        if self.text_input is not None:
+            self.text_input.show_cursor = value
 
     @property
     def selected_text(self) -> str:
@@ -1145,10 +1182,24 @@ class TextEditor(Widget, can_focus=True, can_focus_children=False):
         else:
             return None
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """
+        Hide and disable the file and search bindings while read_only is set:
+        opening a file would edit the document, and a read-only consumer
+        shouldn't have to pass inherit_bindings=False to be sure ctrl+s
+        does nothing.
+        """
+        if self.read_only and action in self.READ_ONLY_DISABLED_ACTIONS:
+            return False
+        return True
+
     def compose(self) -> ComposeResult:
         self.text_container = TextContainer()
         self.text_input = TextAreaPlus(
-            language=self._language, text=self._initial_text, read_only=self.read_only
+            language=self._language,
+            text=self._initial_text,
+            read_only=self.read_only,
+            show_cursor=self._show_cursor,
         )
         self.completion_list = CompletionList()
         self.footer = FooterContainer(classes="hide")
