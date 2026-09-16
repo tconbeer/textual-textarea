@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Fixes a bug where a `read_only` text area could still be edited from the keyboard: <kbd>ctrl+v</kbd>, <kbd>ctrl+u</kbd>, <kbd>shift+insert</kbd>, and <kbd>super+v</kbd> (paste), <kbd>ctrl+x</kbd> and <kbd>super+x</kbd> (cut), <kbd>ctrl+z</kbd> and <kbd>super+z</kbd> (undo), <kbd>ctrl+y</kbd> and <kbd>super+y</kbd> (redo), <kbd>ctrl+_</kbd> (toggle comment), and <kbd>shift+delete</kbd> (delete line) all mutated the document ([#346](https://github.com/tconbeer/textual-textarea/issues/346)). Pasting from the terminal (a bracketed paste) did, too.
+## [0.18.3] - 2026-09-16
+
+- Fixes a bug where a `read_only` text area could still be edited from the keyboard: <kbd>ctrl+v</kbd>, <kbd>ctrl+u</kbd>, <kbd>shift+insert</kbd>, and <kbd>super+v</kbd> (paste), <kbd>ctrl+x</kbd> and <kbd>super+x</kbd> (cut), <kbd>ctrl+z</kbd> and <kbd>super+z</kbd> (undo), <kbd>ctrl+y</kbd> and <kbd>super+y</kbd> (redo), <kbd>ctrl+\_</kbd> (toggle comment), and <kbd>shift+delete</kbd> (delete line) all mutated the document ([#346](https://github.com/tconbeer/textual-textarea/issues/346)). Pasting from the terminal (a bracketed paste) did, too.
 
 ## [0.18.2] - 2026-09-01
 
@@ -324,7 +326,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.3...HEAD
+[0.18.3]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...0.18.1
 [0.18.0]: https://github.com/tconbeer/textual-textarea/compare/0.17.3...0.18.0
