@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- `TextEditor` now accepts a `show_cursor` argument, which it forwards to the `TextArea` it composes; with `show_cursor=False`, the editor draws no cursor, doesn't shade the cursor's line, and scrolls like an ordinary container, which is what a read-only preview wants ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
+- <kbd>escape</kbd> now bubbles out of a `read_only` editor (which has no completion list to hide), so a screen showing a preview can bind it without making the binding a priority one ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
+- A `read_only` editor now disables the bindings that open its footer inputs: <kbd>ctrl+s</kbd> (save), <kbd>ctrl+o</kbd> (open), <kbd>ctrl+f</kbd> and <kbd>F3</kbd> (find), and <kbd>ctrl+g</kbd> (go to line). Subclasses can narrow `TextEditor.READ_ONLY_DISABLED_ACTIONS` to keep some of them ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
+
 ## [0.18.3] - 2026-09-16
 
 - Fixes a bug where a `read_only` text area could still be edited from the keyboard: <kbd>ctrl+v</kbd>, <kbd>ctrl+u</kbd>, <kbd>shift+insert</kbd>, and <kbd>super+v</kbd> (paste), <kbd>ctrl+x</kbd> and <kbd>super+x</kbd> (cut), <kbd>ctrl+z</kbd> and <kbd>super+z</kbd> (undo), <kbd>ctrl+y</kbd> and <kbd>super+y</kbd> (redo), <kbd>ctrl+\_</kbd> (toggle comment), and <kbd>shift+delete</kbd> (delete line) all mutated the document ([#346](https://github.com/tconbeer/textual-textarea/issues/346)). Pasting from the terminal (a bracketed paste) did, too.

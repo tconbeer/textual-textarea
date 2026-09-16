@@ -51,11 +51,33 @@ app = TextApp()
 app.run()
 ```
 
-In addition to the standard Widget arguments, TextArea accepts three additional, optional arguments when initializing the widget:
+In addition to the standard Widget arguments, TextArea accepts several additional, optional arguments when initializing the widget:
 
 - language (str): Must be `None` or the short name of a [Pygments lexer](https://pygments.org/docs/lexers/), e.g., `python`, `sql`, `as3`. Defaults to `None`.
 - theme (str): Must be name of a [Pygments style](https://pygments.org/styles/), e.g., `bw`, `github-dark`, `solarized-light`. Defaults to `monokai`.
 - use_system_clipboard (bool): Set to `False` to make the TextArea's copy and paste operations ignore the system clipboard. Defaults to `True`. Some Linux users may need to apt-install `xclip` or `xsel` to enable the system clipboard features.
+- read_only (bool): Set to `True` to prevent the contents from being edited from the keyboard. Defaults to `False`.
+- show_cursor (bool): Set to `False` to hide the cursor (and the shading of the line that contains it), and to scroll the contents like an ordinary container. Defaults to `True`.
+
+#### Read-only previews
+
+To show text the user can read, scroll, and copy from, but not edit, pass both
+`read_only=True` and `show_cursor=False`:
+
+```python
+yield TextEditor(text=query, language="sql", read_only=True, show_cursor=False, id="preview")
+```
+
+A `read_only` editor also disables the bindings that open its footer inputs --
+save (<kbd>ctrl+s</kbd>), open (<kbd>ctrl+o</kbd>), find (<kbd>ctrl+f</kbd>, <kbd>F3</kbd>),
+and go to line (<kbd>ctrl+g</kbd>) -- and lets <kbd>escape</kbd> bubble, so the screen
+showing the preview can bind it to dismiss the preview. To keep some of those
+bindings, subclass the editor and narrow `READ_ONLY_DISABLED_ACTIONS`:
+
+```python
+class SearchablePreview(TextEditor):
+    READ_ONLY_DISABLED_ACTIONS = frozenset({"save", "load"})
+```
 
 The TextArea supports many actions and key bindings. **For proper binding of `ctrl+c` to the COPY action,
 you must initialize your App with `inherit_bindings=False`** (as shown above), so that `ctrl+c` does not quit the app. The TextArea implements `ctrl+q` as quit; you way wish to mimic that in your app so that other in-focus widgets use the same behavior.

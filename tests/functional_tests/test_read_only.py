@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import List
 
 import pytest
-from textual.app import App
+from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.events import Paste
+from textual.widgets import Input
 from textual.widgets.text_area import Selection
 
 from textual_textarea import TextEditor
@@ -134,3 +136,125 @@ async def test_read_only_can_be_toggled_off(read_only_app: App) -> None:
         await pilot.press("ctrl+v")
         await pilot.pause()
         assert ta.text == f"select{ORIGINAL_TEXT}"
+
+
+@pytest.mark.asyncio
+async def test_show_cursor_is_forwarded_to_the_text_area(
+    app: App, preview_app: App
+) -> None:
+    async with app.run_test():
+        ti = app.query_one("#ta", expect_type=TextEditor).text_input
+        assert ti is not None
+        assert ti.show_cursor is True
+
+    async with preview_app.run_test() as pilot:
+        ta = preview_app.query_one("#ta", expect_type=TextEditor)
+        ti = ta.text_input
+        assert ti is not None
+        assert ti.show_cursor is False
+        assert ta.show_cursor is False
+
+        # and it can still be toggled after mount, through the editor
+        ta.show_cursor = True
+        await pilot.pause()
+        assert ti.show_cursor is True
+        assert ta.show_cursor is True
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["ctrl+s", "ctrl+o", "ctrl+f", "f3", "ctrl+g"],
+)
+@pytest.mark.asyncio
+async def test_read_only_disables_the_file_and_search_bindings(
+    read_only_app: App, key: str
+) -> None:
+    async with read_only_app.run_test() as pilot:
+        ta = read_only_app.query_one("#ta", expect_type=TextEditor)
+        ta.text = ORIGINAL_TEXT
+        await pilot.pause()
+
+        await pilot.press(key)
+        await pilot.pause()
+
+        assert not ta.query(Input)
+        assert ta.text_input is not None
+        assert ta.text_input.has_focus
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["ctrl+s", "ctrl+o", "ctrl+f", "f3", "ctrl+g"],
+)
+@pytest.mark.asyncio
+async def test_an_editable_editor_keeps_the_file_and_search_bindings(
+    app: App, key: str
+) -> None:
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = ORIGINAL_TEXT
+        await pilot.pause()
+
+        await pilot.press(key)
+        await pilot.pause()
+
+        assert ta.query(Input)
+
+
+class EscapeApp(App, inherit_bindings=False):
+    """An app that binds escape, like a screen that shows a dismissable preview."""
+
+    BINDINGS = [Binding("escape", "record_escape", "escape")]
+
+    def __init__(self, read_only: bool) -> None:
+        self.read_only = read_only
+        self.escapes = 0
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        self.editor = TextEditor(language="python", read_only=self.read_only, id="ta")
+        yield self.editor
+
+    def on_mount(self) -> None:
+        self.editor.focus()
+
+    def action_record_escape(self) -> None:
+        self.escapes += 1
+
+
+@pytest.mark.asyncio
+async def test_escape_bubbles_from_a_read_only_editor() -> None:
+    """
+    A read-only preview has no completion list to hide, so escape should reach
+    a screen (or app) that binds it, without needing a priority binding.
+    """
+    app = EscapeApp(read_only=True)
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = ORIGINAL_TEXT
+        ta.selection = Selection(start=(0, 0), end=(0, 6))
+        await pilot.pause()
+
+        await pilot.press("escape")
+        await pilot.pause()
+
+        assert app.escapes == 1
+        # the editor leaves the selection alone, too
+        assert ta.selection == Selection(start=(0, 0), end=(0, 6))
+
+
+@pytest.mark.asyncio
+async def test_escape_does_not_bubble_from_an_editable_editor() -> None:
+    app = EscapeApp(read_only=False)
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.text = ORIGINAL_TEXT
+        ta.selection = Selection(start=(0, 0), end=(0, 6))
+        await pilot.pause()
+
+        await pilot.press("escape")
+        await pilot.pause()
+
+        assert app.escapes == 0
+        # instead, the editor collapses the selection
+        assert ta.selection == Selection(start=(0, 6), end=(0, 6))

@@ -18,10 +18,12 @@ class TextEditorApp(App, inherit_bindings=False):
         language: Union[str, None] = None,
         use_system_clipboard: bool = True,
         read_only: bool = False,
+        show_cursor: bool = True,
     ):
         self.language = language
         self.use_system_clipboard = use_system_clipboard
         self.read_only = read_only
+        self.show_cursor = show_cursor
         super().__init__(driver_class, css_path, watch_css)
 
     def compose(self) -> ComposeResult:
@@ -29,6 +31,7 @@ class TextEditorApp(App, inherit_bindings=False):
             language=self.language,
             use_system_clipboard=self.use_system_clipboard,
             read_only=self.read_only,
+            show_cursor=self.show_cursor,
             id="ta",
         )
         yield self.editor
@@ -46,6 +49,13 @@ def app() -> App:
 @pytest.fixture
 def read_only_app() -> App:
     app = TextEditorApp(language="python", read_only=True)
+    return app
+
+
+@pytest.fixture
+def preview_app() -> App:
+    """A read-only editor that doesn't draw a cursor, like a preview pane."""
+    app = TextEditorApp(language="python", read_only=True, show_cursor=False)
     return app
 
 
