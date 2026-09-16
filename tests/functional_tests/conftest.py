@@ -17,15 +17,18 @@ class TextEditorApp(App, inherit_bindings=False):
         watch_css: bool = False,
         language: Union[str, None] = None,
         use_system_clipboard: bool = True,
+        read_only: bool = False,
     ):
         self.language = language
         self.use_system_clipboard = use_system_clipboard
+        self.read_only = read_only
         super().__init__(driver_class, css_path, watch_css)
 
     def compose(self) -> ComposeResult:
         self.editor = TextEditor(
             language=self.language,
             use_system_clipboard=self.use_system_clipboard,
+            read_only=self.read_only,
             id="ta",
         )
         yield self.editor
@@ -37,6 +40,12 @@ class TextEditorApp(App, inherit_bindings=False):
 @pytest.fixture
 def app() -> App:
     app = TextEditorApp(language="python")
+    return app
+
+
+@pytest.fixture
+def read_only_app() -> App:
+    app = TextEditorApp(language="python", read_only=True)
     return app
 
 
