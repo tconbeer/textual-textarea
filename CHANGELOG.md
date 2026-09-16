@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.4] - 2026-09-16
+
 - `TextEditor` now accepts a `show_cursor` argument, which it forwards to the `TextArea` it composes; with `show_cursor=False`, the editor draws no cursor, doesn't shade the cursor's line, and scrolls like an ordinary container, which is what a read-only preview wants ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
 - <kbd>escape</kbd> now bubbles out of a `read_only` editor (which has no completion list to hide), so a screen showing a preview can bind it without making the binding a priority one ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
 - A `read_only` editor now disables the bindings that open its footer inputs: <kbd>ctrl+s</kbd> (save), <kbd>ctrl+o</kbd> (open), <kbd>ctrl+f</kbd> and <kbd>F3</kbd> (find), and <kbd>ctrl+g</kbd> (go to line). Subclasses can narrow `TextEditor.READ_ONLY_DISABLED_ACTIONS` to keep some of them ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).
@@ -330,7 +332,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.3...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.4...HEAD
+[0.18.4]: https://github.com/tconbeer/textual-textarea/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...0.18.2
 [0.18.1]: https://github.com/tconbeer/textual-textarea/compare/0.18.0...0.18.1
