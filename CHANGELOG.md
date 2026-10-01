@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.5] - 2026-10-01
+
 - Removes the requires-python upper bound, which is [harmful](https://discuss.python.org/t/requires-python-upper-limits/12663) and ignored by uv.
 
 ## [0.18.4] - 2026-09-16
@@ -334,7 +336,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.4...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.5...HEAD
+[0.18.5]: https://github.com/tconbeer/textual-textarea/compare/0.18.4...0.18.5
 [0.18.4]: https://github.com/tconbeer/textual-textarea/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...0.18.3
 [0.18.2]: https://github.com/tconbeer/textual-textarea/compare/0.18.1...0.18.2
