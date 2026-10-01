@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Removes the requires-python upper bound, which is [harmful](https://discuss.python.org/t/requires-python-upper-limits/12663) and ignored by uv.
+
 ## [0.18.4] - 2026-09-16
 
 - `TextEditor` now accepts a `show_cursor` argument, which it forwards to the `TextArea` it composes; with `show_cursor=False`, the editor draws no cursor, doesn't shade the cursor's line, and scrolls like an ordinary container, which is what a read-only preview wants ([#345](https://github.com/tconbeer/textual-textarea/issues/345)).

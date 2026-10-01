@@ -2,7 +2,7 @@
 
 name = "textual-textarea"
 version = "0.18.4"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.10"
 description = "A text area (multi-line input) with syntax highlighting for Textual"
 authors = [
     { name = "Ted Conbeer", email = "tconbeer@users.noreply.github.com" }
