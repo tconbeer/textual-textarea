@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Fixes a bug where accepting a quoted completion (like `"MyFunc"`) after typing an opening quote doubled the quotes. A word completer's prefix now includes a quote that opens the word (`"`, `'`, or `` ` ``), so it receives `"My` instead of `My`; a value that opens with the same quote replaces it, along with the quote the editor auto-closed ([harlequin/#1209](https://github.com/tconbeer/harlequin/issues/1209)).
+- Fixes a bug where accepting an already-quoted completion (like `"MyFunc"`) after typing an opening quote doubled the quotes ([harlequin/#1209](https://github.com/tconbeer/harlequin/issues/1209)).
 
 ## [0.18.5] - 2026-10-01
 

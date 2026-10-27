@@ -351,27 +351,30 @@ async def test_accepting_completion_scrolls_cursor_into_view(app: App) -> None:
 
 
 @pytest.mark.parametrize(
-    "keys,value,expected_prefix,expected_text,expected_cursor_column",
+    "text,keys,value,expected_prefix,expected_text,expected_cursor_column",
     [
-        # no quote, bare value
-        (["m", "y"], "myfunc", "my", "myfunc", 6),
-        # no quote, quoted value
-        (["m", "y"], '"myfunc"', "my", '"myfunc"', 8),
-        # typed quote, bare value: the quote and its auto-closed pair stay
-        (["quotation_mark", "m", "y"], "myfunc", '"my', '"myfunc"', 7),
-        # typed quote, quoted value: replaces the quote and its auto-closed pair
-        (["quotation_mark", "m", "y"], '"myfunc"', '"my', '"myfunc"', 8),
-        # typed quote, value opened but not closed: the auto-closed quote closes it
-        (["quotation_mark", "m", "y"], '"myfunc', '"my', '"myfunc"', 7),
-        (["apostrophe", "m", "y"], "'myfunc'", "'my", "'myfunc'", 8),
-        (["grave_accent", "m", "y"], "`myfunc`", "`my", "`myfunc`", 8),
-        # a quote after a word character doesn't open the word
-        (["x", "apostrophe", "a"], "ab", "a", "x'ab", 4),
+        ("", ["m", "y"], "myfunc", "my", "myfunc", 6),
+        ("", ["m", "y"], '"myfunc"', "my", '"myfunc"', 8),
+        # the quote and the one the editor auto-closed stay around a bare value
+        ("", ["quotation_mark", "m", "y"], "myfunc", "my", '"myfunc"', 7),
+        # a quoted value replaces both
+        ("", ["quotation_mark", "m", "y"], '"myfunc"', "my", '"myfunc"', 8),
+        # a value that opens the quote but doesn't close it keeps the closing one
+        ("", ["quotation_mark", "m", "y"], '"myfunc', "my", '"myfunc"', 7),
+        ("", ["apostrophe", "m", "y"], "'myfunc'", "my", "'myfunc'", 8),
+        # backticks aren't auto-closed
+        ("", ["grave_accent", "m", "y"], "`myfunc`", "my", "`myfunc`", 8),
+        ("", ["quotation_mark", "m", "y", "backspace"], '"myfunc"', "m", '"myfunc"', 8),
+        # a quote after a word character or another quote doesn't open the word
+        ('"foo"', ["b", "a"], '"bar"', "ba", '"foo""bar"', 10),
+        ('"a""', ["b"], '"b"', "b", '"a"""b"', 7),
+        ("x'", ["a"], "'ab'", "a", "x''ab'", 6),
     ],
 )
 @pytest.mark.asyncio
 async def test_accepting_quoted_word_completion(
     app: App,
+    text: str,
     keys: list[str],
     value: str,
     expected_prefix: str,
@@ -385,6 +388,9 @@ async def test_accepting_quoted_word_completion(
         ta.focus()
         while ta.word_completer is None:
             await pilot.pause()
+        ta.text = text
+        ta.selection = Selection((0, len(text)), (0, len(text)))
+        await pilot.pause()
         for key in keys:
             await pilot.press(key)
 
@@ -402,6 +408,38 @@ async def test_accepting_quoted_word_completion(
 
         assert ta.text == expected_text
         assert ta.selection.end == (0, expected_cursor_column)
+
+
+@pytest.mark.asyncio
+async def test_word_completion_after_backspacing_over_the_quote(app: App) -> None:
+    """
+    With its opening quote deleted, a word has no quote to replace, so the quote
+    the editor auto-closed is left alone.
+    """
+    completer = MagicMock(return_value=[('"myfunc"', '"myfunc"')])
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = completer
+        ta.focus()
+        while ta.word_completer is None:
+            await pilot.pause()
+        for key in ["quotation_mark", "m", "backspace", "backspace", "m", "y"]:
+            await pilot.press(key)
+        assert ta.text == 'my"'
+
+        start_time = monotonic()
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
+            await pilot.pause()
+        completer.assert_called_with("my")
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert ta.text == '"myfunc""'
+        assert ta.selection.end == (0, 8)
 
 
 @pytest.mark.asyncio
@@ -431,7 +469,7 @@ async def test_accepting_quoted_word_completion_without_closing_quote(
             if monotonic() - start_time > 10:
                 break
             await pilot.pause()
-        completer.assert_called_with('"my')
+        completer.assert_called_with("my")
 
         await pilot.press("enter")
         await app.workers.wait_for_complete()
@@ -439,3 +477,44 @@ async def test_accepting_quoted_word_completion_without_closing_quote(
 
         assert ta.text == '"myfunc"rest'
         assert ta.selection.end == (0, 8)
+
+
+@pytest.mark.parametrize(
+    "value,expected_text,expected_cursor_column",
+    [
+        # the value closes the quote, so it replaces the auto-closed one
+        ('public."myfunc"', 'public."myfunc"', 15),
+        # the auto-closed quote closes a value that leaves it open
+        ('public."myfunc', 'public."myfunc"', 14),
+    ],
+)
+@pytest.mark.asyncio
+async def test_accepting_quoted_member_completion(
+    app: App, value: str, expected_text: str, expected_cursor_column: int
+) -> None:
+    completer = MagicMock(return_value=[(value, value)])
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.member_completer = completer
+        ta.focus()
+        while ta.member_completer is None:
+            await pilot.pause()
+        ta.text = "public"
+        ta.selection = Selection((0, 6), (0, 6))
+        await pilot.pause()
+        for key in ["full_stop", "quotation_mark", "m", "y"]:
+            await pilot.press(key)
+
+        start_time = monotonic()
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
+            await pilot.pause()
+        completer.assert_called_with('public."my')
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert ta.text == expected_text
+        assert ta.selection.end == (0, expected_cursor_column)
