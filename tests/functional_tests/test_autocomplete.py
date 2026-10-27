@@ -348,3 +348,94 @@ async def test_accepting_completion_scrolls_cursor_into_view(app: App) -> None:
         assert ta.text == prefix + long_word
         assert ta.selection.end[1] == len(prefix) + len(long_word)
         assert ta.text_input.scroll_offset.x > 0
+
+
+@pytest.mark.parametrize(
+    "keys,value,expected_prefix,expected_text,expected_cursor_column",
+    [
+        # no quote, bare value
+        (["m", "y"], "myfunc", "my", "myfunc", 6),
+        # no quote, quoted value
+        (["m", "y"], '"myfunc"', "my", '"myfunc"', 8),
+        # typed quote, bare value: the quote and its auto-closed pair stay
+        (["quotation_mark", "m", "y"], "myfunc", '"my', '"myfunc"', 7),
+        # typed quote, quoted value: replaces the quote and its auto-closed pair
+        (["quotation_mark", "m", "y"], '"myfunc"', '"my', '"myfunc"', 8),
+        # typed quote, value opened but not closed: the auto-closed quote closes it
+        (["quotation_mark", "m", "y"], '"myfunc', '"my', '"myfunc"', 7),
+        (["apostrophe", "m", "y"], "'myfunc'", "'my", "'myfunc'", 8),
+        (["grave_accent", "m", "y"], "`myfunc`", "`my", "`myfunc`", 8),
+        # a quote after a word character doesn't open the word
+        (["x", "apostrophe", "a"], "ab", "a", "x'ab", 4),
+    ],
+)
+@pytest.mark.asyncio
+async def test_accepting_quoted_word_completion(
+    app: App,
+    keys: list[str],
+    value: str,
+    expected_prefix: str,
+    expected_text: str,
+    expected_cursor_column: int,
+) -> None:
+    completer = MagicMock(return_value=[(value, value)])
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = completer
+        ta.focus()
+        while ta.word_completer is None:
+            await pilot.pause()
+        for key in keys:
+            await pilot.press(key)
+
+        start_time = monotonic()
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
+            await pilot.pause()
+        completer.assert_called_with(expected_prefix)
+        assert ta.completion_list.is_open is True
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert ta.text == expected_text
+        assert ta.selection.end == (0, expected_cursor_column)
+
+
+@pytest.mark.asyncio
+async def test_accepting_quoted_word_completion_without_closing_quote(
+    app: App,
+) -> None:
+    """
+    A quote typed before a word character isn't auto-closed, so there is no
+    closing quote after the cursor to replace.
+    """
+    completer = MagicMock(return_value=[('"myfunc"', '"myfunc"')])
+    async with app.run_test() as pilot:
+        ta = app.query_one("#ta", expect_type=TextEditor)
+        ta.word_completer = completer
+        ta.focus()
+        while ta.word_completer is None:
+            await pilot.pause()
+        ta.text = "rest"
+        ta.selection = Selection((0, 0), (0, 0))
+        await pilot.pause()
+        for key in ["quotation_mark", "m", "y"]:
+            await pilot.press(key)
+        assert ta.text == '"myrest'
+
+        start_time = monotonic()
+        while ta.completion_list.is_open is False:
+            if monotonic() - start_time > 10:
+                break
+            await pilot.pause()
+        completer.assert_called_with('"my')
+
+        await pilot.press("enter")
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        assert ta.text == '"myfunc"rest'
+        assert ta.selection.end == (0, 8)

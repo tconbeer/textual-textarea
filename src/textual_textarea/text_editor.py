@@ -54,7 +54,10 @@ MEMBER_PROG = re.compile(
     rf"\w*(`|'|\")?(\.|::?)(\w+|{SINGLE_QUOTED_EXPR}|{DOUBLE_QUOTED_EXPR}|{BACKTICK_EXPR})",
     flags=re.IGNORECASE,
 )
-WORD_PROG = re.compile(r"\w+")
+WORD_QUOTES = "\"'`"
+# a quote after a word character closes a string or prefixes a literal (x'AB'),
+# so only a quote at the start of a token opens the word.
+WORD_PROG = re.compile(rf"\w+([{WORD_QUOTES}](?!\w))?")
 NON_WORD_CHAR_PROG = re.compile(r"\W")
 
 
@@ -326,12 +329,29 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self.inline_comment_marker = INLINE_MARKERS.get(language)
 
     def replace_current_word(self, new_word: str) -> None:
+        """
+        Replace the word before the cursor with new_word. A word's opening quote
+        is replaced only by a value that opens with the same quote, and then the
+        quote that closes it at the cursor is too, if the value closes it itself.
+        """
         current_word = self._get_word_before_cursor()
-        offset = len(current_word)
+        line_number, cursor_column = self.cursor_location
+        start_column = cursor_column - len(current_word)
+        end_column = cursor_column
+        opening_quote = self._get_opening_quote(current_word)
+        if opening_quote and not new_word.startswith(opening_quote):
+            start_column += 1
+        elif (
+            opening_quote
+            and len(new_word) > 1
+            and new_word.endswith(opening_quote)
+            and self._get_character_at_cursor() == opening_quote
+        ):
+            end_column += 1
         self.replace(
             new_word,
-            start=(self.cursor_location[0], self.cursor_location[1] - offset),
-            end=self.cursor_location,
+            start=(line_number, start_column),
+            end=(line_number, end_column),
             maintain_selection_offset=False,
         )
         # see on_paste: replace() no longer scrolls the cursor into view.
@@ -556,6 +576,14 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             return match.group(0)[::-1]
         else:
             return ""
+
+    def _get_opening_quote(self, word: str) -> str:
+        """The quote a word completer's prefix opens with, or an empty string."""
+        if self.completer_active in ("path", "member"):
+            return ""
+        if word and word[0] in WORD_QUOTES:
+            return word[0]
+        return ""
 
     def _handle_backspace(self, event: events.Key) -> None:
         if self.completer_active is not None:
