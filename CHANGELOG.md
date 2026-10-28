@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-28
+
 - Fixes a bug where accepting an already-quoted completion (like `"MyFunc"`) after typing an opening quote doubled the quotes ([harlequin/#1209](https://github.com/tconbeer/harlequin/issues/1209)).
 
 ## [0.18.5] - 2026-10-01
@@ -338,7 +340,8 @@ All notable changes to this project will be documented in this file.
   support for syntax highlighting, themes, keyboard navigation, copy-paste, file
   opening and saving, and more!
 
-[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.18.5...HEAD
+[unreleased]: https://github.com/tconbeer/textual-textarea/compare/0.19.0...HEAD
+[0.19.0]: https://github.com/tconbeer/textual-textarea/compare/0.18.5...0.19.0
 [0.18.5]: https://github.com/tconbeer/textual-textarea/compare/0.18.4...0.18.5
 [0.18.4]: https://github.com/tconbeer/textual-textarea/compare/0.18.3...0.18.4
 [0.18.3]: https://github.com/tconbeer/textual-textarea/compare/0.18.2...0.18.3
