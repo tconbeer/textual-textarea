@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fixes a bug where accepting an already-quoted completion (like `"MyFunc"`) after typing an opening quote doubled the quotes ([harlequin/#1209](https://github.com/tconbeer/harlequin/issues/1209)).
+
 ## [0.18.5] - 2026-10-01
 
 - Removes the requires-python upper bound, which is [harmful](https://discuss.python.org/t/requires-python-upper-limits/12663) and ignored by uv.

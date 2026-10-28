@@ -55,6 +55,9 @@ MEMBER_PROG = re.compile(
     flags=re.IGNORECASE,
 )
 WORD_PROG = re.compile(r"\w+")
+QUOTES = "\"'`"
+WORD_CHAR_OR_QUOTE_PROG = re.compile(rf"[\w{QUOTES}]")
+MEMBER_OPENING_QUOTE_PROG = re.compile(rf"([{QUOTES}])\w*$")
 NON_WORD_CHAR_PROG = re.compile(r"\W")
 
 
@@ -326,12 +329,32 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
         self.inline_comment_marker = INLINE_MARKERS.get(language)
 
     def replace_current_word(self, new_word: str) -> None:
+        """
+        Replace the word before the cursor with new_word. A value that opens with
+        the quote before the word replaces that quote too, and the closing quote
+        at the cursor if the value closes it.
+        """
         current_word = self._get_word_before_cursor()
-        offset = len(current_word)
+        line_number, cursor_column = self.cursor_location
+        start_column = cursor_column - len(current_word)
+        end_column = cursor_column
+        opening_quote = self._get_opening_quote(current_word)
+        if opening_quote and self.completer_active != "member":
+            if new_word.startswith(opening_quote):
+                start_column -= 1
+            else:
+                opening_quote = ""
+        if (
+            opening_quote
+            and len(new_word) > 1
+            and new_word.endswith(opening_quote)
+            and self._get_character_at_cursor() == opening_quote
+        ):
+            end_column += 1
         self.replace(
             new_word,
-            start=(self.cursor_location[0], self.cursor_location[1] - offset),
-            end=self.cursor_location,
+            start=(line_number, start_column),
+            end=(line_number, end_column),
             maintain_selection_offset=False,
         )
         # see on_paste: replace() no longer scrolls the cursor into view.
@@ -556,6 +579,32 @@ class TextAreaPlus(TextArea, inherit_bindings=False):
             return match.group(0)[::-1]
         else:
             return ""
+
+    def _get_opening_quote(self, current_word: str) -> str:
+        """
+        The quote that opens the token being completed: in a member prefix, the
+        one after the separator; for a word, the one just before it, unless it
+        follows a word character or another quote, where it closes a string, is
+        escaped, or prefixes a literal (x'AB').
+        """
+        if self.completer_active == "path":
+            return ""
+        if self.completer_active == "member":
+            match = MEMBER_OPENING_QUOTE_PROG.search(current_word)
+            return match.group(1) if match else ""
+        line_number, cursor_column = self.cursor_location
+        word_start = cursor_column - len(current_word)
+        before_word = self.get_text_range(
+            start=(line_number, max(0, word_start - 2)),
+            end=(line_number, word_start),
+        )
+        if (
+            not before_word
+            or before_word[-1] not in QUOTES
+            or (len(before_word) == 2 and WORD_CHAR_OR_QUOTE_PROG.match(before_word[0]))
+        ):
+            return ""
+        return before_word[-1]
 
     def _handle_backspace(self, event: events.Key) -> None:
         if self.completer_active is not None:
